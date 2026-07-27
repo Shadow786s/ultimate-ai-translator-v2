@@ -6,6 +6,7 @@ from app.api.upload import router as upload_router
 from app.api.jobs import router as jobs_router
 
 from app.database.session import engine
+from app.models.job import Base
 
 
 app = FastAPI(
@@ -14,10 +15,17 @@ app = FastAPI(
     description="AI-powered subtitle translation platform",
 )
 
-
 app.include_router(upload_router)
 app.include_router(jobs_router)
 
+@app.on_event("startup")
+async def startup():
+
+    async with engine.begin() as connection:
+
+        await connection.run_sync(
+            Base.metadata.create_all
+        )
 
 @app.get("/")
 async def root():
