@@ -1,6 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 
 from app.services.srt_parser import SRTParser
+from app.services.job_manager import JobManager
 
 
 router = APIRouter(
@@ -9,21 +10,33 @@ router = APIRouter(
 )
 
 
+job_manager = JobManager()
+
+
 @router.post("/upload")
 async def upload_srt(
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    batch_size: int = Form(100),
+    source_language: str = Form("auto"),
+    target_language: str = Form("roman-hindi"),
 ):
 
     if not file.filename:
         raise HTTPException(
             status_code=400,
-            detail="No filename provided."
+            detail="No filename provided.",
         )
 
     if not file.filename.lower().endswith(".srt"):
         raise HTTPException(
             status_code=400,
-            detail="Only .srt files are supported."
+            detail="Only .srt files are supported.",
+        )
+
+    if batch_size < 1 or batch_size > 500:
+        raise HTTPException(
+            status_code=400,
+            detail="Batch size must be between 1 and 500.",
         )
 
     data = await file.read()
@@ -31,7 +44,7 @@ async def upload_srt(
     if not data:
         raise HTTPException(
             status_code=400,
-            detail="The uploaded file is empty."
+            detail="The uploaded file is empty.",
         )
 
     try:
@@ -44,23 +57,35 @@ async def upload_srt(
 
         raise HTTPException(
             status_code=400,
-            detail=str(error)
+            detail=str(error),
         )
 
     if not subtitles:
 
         raise HTTPException(
             status_code=400,
-            detail="No valid subtitles were found."
+            detail="No valid subtitles were found.",
         )
+
+    job = job_manager.create_job(
+        filename=file.filename,
+        subtitles=subtitles,
+        batch_size=batch_size,
+        source_language=source_language,
+        target_language=target_language,
+    )
 
     return {
         "success": True,
-        "filename": file.filename,
-        "file_size_bytes": len(data),
+        "job_id": job["job_id"],
+        "filename": job["filename"],
         "encoding": encoding,
-        "subtitle_count": len(subtitles),
-        "first_subtitle": subtitles[0],
-        "last_subtitle": subtitles[-1],
-        "status": "uploaded",
+        "source_language": job["source_language"],
+        "target_language": job["target_language"],
+        "batch_size": job["batch_size"],
+        "total_subtitles": job["total_subtitles"],
+        "total_batches": job["total_batches"],
+        "completed_subtitles": job["completed_subtitles"],
+        "progress": job["progress"],
+        "status": job["status"],
     }
