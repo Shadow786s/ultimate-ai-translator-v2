@@ -1,91 +1,123 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form
+from pathlib import Path
+from uuid import uuid4
 
-from app.services.srt_parser import SRTParser
-from app.services.job_manager import JobManager
+import srt
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Depends
+
+from app.database.session import get_db
+from app.models.job import Job
 
 
 router = APIRouter(
     prefix="/api",
-    tags=["Subtitle Upload"],
+    tags=["Upload"],
 )
 
 
-job_manager = JobManager()
+UPLOAD_DIR = Path("/tmp/ultimate-ai-translator/uploads")
+UPLOAD_DIR.mkdir(
+    parents=True,
+    exist_ok=True,
+)
 
 
 @router.post("/upload")
 async def upload_srt(
     file: UploadFile = File(...),
-    batch_size: int = Form(100),
-    source_language: str = Form("auto"),
-    target_language: str = Form("roman-hindi"),
+    db: AsyncSession = Depends(get_db),
 ):
 
     if not file.filename:
         raise HTTPException(
             status_code=400,
-            detail="No filename provided.",
+            detail="Filename is required.",
         )
 
     if not file.filename.lower().endswith(".srt"):
         raise HTTPException(
             status_code=400,
-            detail="Only .srt files are supported.",
-        )
-
-    if batch_size < 1 or batch_size > 500:
-        raise HTTPException(
-            status_code=400,
-            detail="Batch size must be between 1 and 500.",
-        )
-
-    data = await file.read()
-
-    if not data:
-        raise HTTPException(
-            status_code=400,
-            detail="The uploaded file is empty.",
+            detail="Only SRT files are supported.",
         )
 
     try:
 
-        text, encoding = SRTParser.decode(data)
+        content = await file.read()
 
-        subtitles = SRTParser.parse(text)
+        if not content:
+            raise HTTPException(
+                status_code=400,
+                detail="Uploaded SRT file is empty.",
+            )
 
-    except ValueError as error:
+        try:
 
-        raise HTTPException(
-            status_code=400,
-            detail=str(error),
+            text_content = content.decode("utf-8-sig")
+
+        except UnicodeDecodeError:
+
+            text_content = content.decode(
+                "utf-8",
+                errors="replace",
+            )
+
+        subtitles = list(
+            srt.parse(text_content)
         )
 
-    if not subtitles:
+        if not subtitles:
+            raise HTTPException(
+                status_code=400,
+                detail="No subtitles found in the SRT file.",
+            )
 
-        raise HTTPException(
-            status_code=400,
-            detail="No valid subtitles were found.",
+        job_id = str(uuid4())
+
+        file_path = (
+            UPLOAD_DIR
+            / f"{job_id}.srt"
         )
 
-    job = job_manager.create_job(
-        filename=file.filename,
-        subtitles=subtitles,
-        batch_size=batch_size,
-        source_language=source_language,
-        target_language=target_language,
-    )
+        file_path.write_bytes(content)
 
-    return {
-        "success": True,
-        "job_id": job["job_id"],
-        "filename": job["filename"],
-        "encoding": encoding,
-        "source_language": job["source_language"],
-        "target_language": job["target_language"],
-        "batch_size": job["batch_size"],
-        "total_subtitles": job["total_subtitles"],
-        "total_batches": job["total_batches"],
-        "completed_subtitles": job["completed_subtitles"],
-        "progress": job["progress"],
-        "status": job["status"],
-    }
+        job = Job(
+            id=job_id,
+            status="queued",
+            source_language=None,
+            target_language="hinglish",
+            total_items=len(subtitles),
+            completed_items=0,
+            progress=0,
+            original_filename=file.filename,
+        )
+
+        db.add(job)
+
+        await db.commit()
+
+        await db.refresh(job)
+
+        return {
+            "success": True,
+            "message": "SRT uploaded successfully.",
+            "job_id": job.id,
+            "filename": job.original_filename,
+            "total_items": job.total_items,
+            "completed_items": job.completed_items,
+            "progress": job.progress,
+            "status": job.status,
+        }
+
+    except HTTPException:
+
+        raise
+
+    except Exception as error:
+
+        await db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process SRT upload: {error}",
+        )
