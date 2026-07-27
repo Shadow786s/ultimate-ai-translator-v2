@@ -1,130 +1,199 @@
 import asyncio
 import logging
 
+import srt
+from sqlalchemy import select
+
 from app.core.config import settings
+from app.database.session import SessionLocal
+from app.models.job import Job
 from app.services.translator import TranslationService
 
 
 logger = logging.getLogger(__name__)
 
 
+async def update_job(
+    job_id: str,
+    *,
+    status: str | None = None,
+    completed_items: int | None = None,
+    progress: int | None = None,
+    error_message: str | None = None,
+):
+    async with SessionLocal() as db:
+
+        result = await db.execute(
+            select(Job).where(
+                Job.id == job_id
+            )
+        )
+
+        job = result.scalar_one_or_none()
+
+        if job is None:
+            return
+
+        if status is not None:
+            job.status = status
+
+        if completed_items is not None:
+            job.completed_items = completed_items
+
+        if progress is not None:
+            job.progress = progress
+
+        if error_message is not None:
+            job.error_message = error_message
+
+        await db.commit()
+
+
 async def process_translation_job(
     job_id: str,
     subtitles: list[str],
 ):
-    """
-    Process subtitles in configurable batches.
-
-    Default:
-        BATCH_SIZE=100
-
-    Can be changed using Render Environment Variables.
-    """
-
-    batch_size = settings.BATCH_SIZE
 
     total = len(subtitles)
 
     if total == 0:
-        return {
-            "success": False,
-            "error": "No subtitles found",
-        }
 
-    translator = TranslationService()
-
-    translated_subtitles = []
-
-    completed = 0
-
-    for start in range(
-        0,
-        total,
-        batch_size,
-    ):
-
-        end = min(
-            start + batch_size,
-            total,
-        )
-
-        current_batch = subtitles[
-            start:end
-        ]
-
-        logger.info(
-            "Job %s: Translating batch %s-%s of %s",
+        await update_job(
             job_id,
-            start + 1,
-            end,
-            total,
+            status="failed",
+            error_message="No subtitles found.",
         )
 
-        for attempt in range(
-            settings.MAX_RETRIES
+        return
+
+    try:
+
+        await update_job(
+            job_id,
+            status="processing",
+            completed_items=0,
+            progress=0,
+        )
+
+        translator = TranslationService()
+
+        batch_size = settings.BATCH_SIZE
+
+        translated_subtitles = []
+
+        for start in range(
+            0,
+            total,
+            batch_size,
         ):
 
-            try:
+            end = min(
+                start + batch_size,
+                total,
+            )
 
-                result = await translator.translate_batch(
-                    current_batch
-                )
+            current_batch = subtitles[
+                start:end
+            ]
 
-                translated_subtitles.extend(
-                    result
-                )
+            logger.info(
+                "Job %s: Processing subtitles %s-%s of %s",
+                job_id,
+                start + 1,
+                end,
+                total,
+            )
 
-                completed += len(
-                    result
-                )
+            batch_result = None
 
-                progress = int(
-                    (
-                        completed
-                        / total
+            for attempt in range(
+                settings.MAX_RETRIES
+            ):
+
+                try:
+
+                    batch_result = (
+                        await translator.translate_batch(
+                            current_batch
+                        )
                     )
-                    * 100
+
+                    break
+
+                except Exception as error:
+
+                    logger.exception(
+                        "Job %s: Batch failed "
+                        "(attempt %s/%s)",
+                        job_id,
+                        attempt + 1,
+                        settings.MAX_RETRIES,
+                    )
+
+                    if (
+                        attempt
+                        == settings.MAX_RETRIES - 1
+                    ):
+                        raise
+
+                    await asyncio.sleep(
+                        2 ** attempt
+                    )
+
+            if batch_result is None:
+
+                raise RuntimeError(
+                    "Translation batch returned no result."
                 )
 
-                logger.info(
-                    "Job %s progress: %s%%",
-                    job_id,
-                    progress,
+            translated_subtitles.extend(
+                batch_result
+            )
+
+            completed = len(
+                translated_subtitles
+            )
+
+            progress = int(
+                (
+                    completed
+                    / total
                 )
+                * 100
+            )
 
-                break
+            await update_job(
+                job_id,
+                status="processing",
+                completed_items=completed,
+                progress=progress,
+            )
 
-            except Exception as error:
+        await update_job(
+            job_id,
+            status="completed",
+            completed_items=total,
+            progress=100,
+        )
 
-                logger.exception(
-                    "Job %s batch failed. "
-                    "Attempt %s/%s",
-                    job_id,
-                    attempt + 1,
-                    settings.MAX_RETRIES,
-                )
+        logger.info(
+            "Job %s completed successfully.",
+            job_id,
+        )
 
-                if (
-                    attempt
-                    == settings.MAX_RETRIES - 1
-                ):
-                    raise
+        return translated_subtitles
 
-                await asyncio.sleep(
-                    2 ** attempt
-                )
+    except Exception as error:
 
-    logger.info(
-        "Job %s completed successfully",
-        job_id,
-    )
+        logger.exception(
+            "Job %s failed.",
+            job_id,
+        )
 
-    return {
-        "success": True,
-        "job_id": job_id,
-        "total": total,
-        "completed": completed,
-        "progress": 100,
-        "translated_subtitles":
-            translated_subtitles,
-    }
+        await update_job(
+            job_id,
+            status="failed",
+            error_message=str(error),
+        )
+
+        return None
