@@ -1,39 +1,51 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.upload import job_manager
+from app.database.session import get_db
+from app.models.job import Job
 
 
 router = APIRouter(
-    prefix="/api/jobs",
+    prefix="/api",
     tags=["Translation Jobs"],
 )
 
 
-@router.get("/{job_id}")
-async def get_job_status(job_id: str):
+@router.get("/jobs/{job_id}")
+async def get_job_status(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+):
 
-    job = job_manager.get_job(job_id)
+    result = await db.execute(
+        select(Job).where(
+            Job.id == job_id
+        )
+    )
 
-    if not job:
+    job = result.scalar_one_or_none()
+
+    if job is None:
 
         raise HTTPException(
             status_code=404,
-            detail="Translation job not found.",
+            detail="Job not found.",
         )
 
     return {
         "success": True,
-        "job_id": job["job_id"],
-        "filename": job["filename"],
-        "source_language": job["source_language"],
-        "target_language": job["target_language"],
-        "batch_size": job["batch_size"],
-        "total_subtitles": job["total_subtitles"],
-        "total_batches": job["total_batches"],
-        "completed_subtitles": job["completed_subtitles"],
-        "completed_batches": job["completed_batches"],
-        "current_batch": job["current_batch"],
-        "progress": job["progress"],
-        "status": job["status"],
-        "current_subtitle": job["current_subtitle"],
+        "job": {
+            "id": job.id,
+            "status": job.status,
+            "source_language": job.source_language,
+            "target_language": job.target_language,
+            "total_items": job.total_items,
+            "completed_items": job.completed_items,
+            "progress": job.progress,
+            "original_filename": job.original_filename,
+            "error_message": job.error_message,
+            "created_at": job.created_at,
+            "updated_at": job.updated_at,
+        },
     }
