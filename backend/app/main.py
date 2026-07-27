@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 
+from sqlalchemy import text
+
 from app.api.upload import router as upload_router
 from app.api.jobs import router as jobs_router
+
+from app.database.session import engine
 
 
 app = FastAPI(
@@ -30,3 +34,28 @@ async def health():
     return {
         "status": "healthy",
     }
+
+
+@app.get("/health/database")
+async def database_health():
+
+    try:
+
+        async with engine.connect() as connection:
+
+            await connection.execute(
+                text("SELECT 1")
+            )
+
+        return {
+            "success": True,
+            "database": "connected",
+        }
+
+    except Exception as error:
+
+        return {
+            "success": False,
+            "database": "connection_failed",
+            "error": str(error),
+        }
