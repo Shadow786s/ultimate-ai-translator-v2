@@ -2,12 +2,23 @@ from pathlib import Path
 from uuid import uuid4
 
 import srt
-from fastapi import APIRouter, File, HTTPException, UploadFile
+
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    UploadFile,
+)
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends
 
 from app.database.session import get_db
 from app.models.job import Job
+from app.services.worker import (
+    process_translation_job,
+)
 
 
 router = APIRouter(
@@ -16,7 +27,10 @@ router = APIRouter(
 )
 
 
-UPLOAD_DIR = Path("/tmp/ultimate-ai-translator/uploads")
+UPLOAD_DIR = Path(
+    "/tmp/ultimate-ai-translator/uploads"
+)
+
 UPLOAD_DIR.mkdir(
     parents=True,
     exist_ok=True,
@@ -25,17 +39,22 @@ UPLOAD_DIR.mkdir(
 
 @router.post("/upload")
 async def upload_srt(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ):
 
     if not file.filename:
+
         raise HTTPException(
             status_code=400,
             detail="Filename is required.",
         )
 
-    if not file.filename.lower().endswith(".srt"):
+    if not file.filename.lower().endswith(
+        ".srt"
+    ):
+
         raise HTTPException(
             status_code=400,
             detail="Only SRT files are supported.",
@@ -46,6 +65,7 @@ async def upload_srt(
         content = await file.read()
 
         if not content:
+
             raise HTTPException(
                 status_code=400,
                 detail="Uploaded SRT file is empty.",
@@ -53,7 +73,9 @@ async def upload_srt(
 
         try:
 
-            text_content = content.decode("utf-8-sig")
+            text_content = content.decode(
+                "utf-8-sig"
+            )
 
         except UnicodeDecodeError:
 
@@ -63,33 +85,49 @@ async def upload_srt(
             )
 
         subtitles = list(
-            srt.parse(text_content)
+            srt.parse(
+                text_content
+            )
         )
 
         if not subtitles:
+
             raise HTTPException(
                 status_code=400,
                 detail="No subtitles found in the SRT file.",
             )
 
-        job_id = str(uuid4())
+        job_id = str(
+            uuid4()
+        )
 
         file_path = (
             UPLOAD_DIR
             / f"{job_id}.srt"
         )
 
-        file_path.write_bytes(content)
+        file_path.write_bytes(
+            content
+        )
+
+        subtitle_texts = [
+            subtitle.content
+            for subtitle in subtitles
+        ]
 
         job = Job(
             id=job_id,
             status="queued",
             source_language=None,
             target_language="hinglish",
-            total_items=len(subtitles),
+            total_items=len(
+                subtitles
+            ),
             completed_items=0,
             progress=0,
-            original_filename=file.filename,
+            original_filename=(
+                file.filename
+            ),
         )
 
         db.add(job)
@@ -98,13 +136,28 @@ async def upload_srt(
 
         await db.refresh(job)
 
+        background_tasks.add_task(
+            process_translation_job,
+            job_id,
+            subtitle_texts,
+        )
+
         return {
             "success": True,
-            "message": "SRT uploaded successfully.",
+            "message": (
+                "SRT uploaded successfully. "
+                "Translation job started."
+            ),
             "job_id": job.id,
-            "filename": job.original_filename,
-            "total_items": job.total_items,
-            "completed_items": job.completed_items,
+            "filename": (
+                job.original_filename
+            ),
+            "total_items": (
+                job.total_items
+            ),
+            "completed_items": (
+                job.completed_items
+            ),
             "progress": job.progress,
             "status": job.status,
         }
@@ -119,5 +172,8 @@ async def upload_srt(
 
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to process SRT upload: {error}",
+            detail=(
+                "Failed to process SRT upload: "
+                f"{error}"
+            ),
         )
