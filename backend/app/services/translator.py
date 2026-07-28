@@ -19,6 +19,10 @@ class TranslationService:
 
         self.model = settings.TRANSLATION_MODEL
 
+        print(
+    f"Translation model being used: {self.model}"
+        )
+
         self.base_url = (
             "https://generativelanguage.googleapis.com"
             "/v1beta/models"
