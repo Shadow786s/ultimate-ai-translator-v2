@@ -155,6 +155,19 @@ async def process_translation_job(
             current_batch = subtitles[
                 start:end
             ]
+            
+            context_size = 5
+
+            previous_context = subtitles[
+                max(0, start - context_size):start
+            ]
+
+            next_context = subtitles[
+                end:min(
+                   total,
+                   end + context_size,
+                )
+            ]
 
             logger.info(
                 "Job %s: Processing subtitles %s-%s of %s",
@@ -176,6 +189,8 @@ async def process_translation_job(
                         await translator.translate_batch(
                             current_batch,
                             source_language,
+                            previous_context,
+                            next_context,
                         )
                     )
 
