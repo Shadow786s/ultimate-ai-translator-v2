@@ -166,6 +166,7 @@ async def upload_srt(
             job_id,
             subtitle_texts,
             batch_size,
+            source_language,
         )
 
         return {
