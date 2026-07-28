@@ -9,6 +9,7 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
+    Query,
     UploadFile,
 )
 
@@ -41,6 +42,15 @@ UPLOAD_DIR.mkdir(
 async def upload_srt(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    batch_size: int = Query(
+        100,
+        ge=1,
+        le=500,
+        description=(
+            "Number of subtitles translated "
+            "per Gemini API request."
+        ),
+    ),
     db: AsyncSession = Depends(get_db),
 ):
 
@@ -140,6 +150,7 @@ async def upload_srt(
             process_translation_job,
             job_id,
             subtitle_texts,
+            batch_size,
         )
 
         return {
