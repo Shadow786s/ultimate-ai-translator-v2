@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from pathlib import Path
 
 import srt
 from sqlalchemy import select
@@ -11,6 +12,20 @@ from app.services.translator import TranslationService
 
 
 logger = logging.getLogger(__name__)
+
+
+UPLOAD_DIR = Path(
+    "/tmp/ultimate-ai-translator/uploads"
+)
+
+OUTPUT_DIR = Path(
+    "/tmp/ultimate-ai-translator/outputs"
+)
+
+OUTPUT_DIR.mkdir(
+    parents=True,
+    exist_ok=True,
+)
 
 
 async def update_job(
@@ -74,6 +89,51 @@ async def process_translation_job(
             completed_items=0,
             progress=0,
         )
+
+        original_file_path = (
+            UPLOAD_DIR
+            / f"{job_id}.srt"
+        )
+
+        if not original_file_path.exists():
+
+            raise FileNotFoundError(
+                "Original SRT file not found."
+            )
+
+        original_content = (
+            original_file_path.read_bytes()
+        )
+
+        try:
+
+            original_text = (
+                original_content.decode(
+                    "utf-8-sig"
+                )
+            )
+
+        except UnicodeDecodeError:
+
+            original_text = (
+                original_content.decode(
+                    "utf-8",
+                    errors="replace",
+                )
+            )
+
+        original_subtitles = list(
+            srt.parse(
+                original_text
+            )
+        )
+
+        if len(original_subtitles) != total:
+
+            raise ValueError(
+                "Original subtitle count does not "
+                "match the translation input count."
+            )
 
         translator = TranslationService()
 
@@ -168,6 +228,56 @@ async def process_translation_job(
                 completed_items=completed,
                 progress=progress,
             )
+
+        if len(
+            translated_subtitles
+        ) != len(
+            original_subtitles
+        ):
+
+            raise ValueError(
+                "Translated subtitle count does not "
+                "match original subtitle count."
+            )
+
+        translated_srt_subtitles = []
+
+        for index, original_subtitle in enumerate(
+            original_subtitles
+        ):
+
+            translated_srt_subtitles.append(
+                srt.Subtitle(
+                    index=original_subtitle.index,
+                    start=original_subtitle.start,
+                    end=original_subtitle.end,
+                    content=translated_subtitles[
+                        index
+                    ],
+                )
+            )
+
+        translated_srt_content = (
+            srt.compose(
+                translated_srt_subtitles
+            )
+        )
+
+        output_file_path = (
+            OUTPUT_DIR
+            / f"{job_id}.srt"
+        )
+
+        output_file_path.write_text(
+            translated_srt_content,
+            encoding="utf-8",
+        )
+
+        logger.info(
+            "Job %s: Translated SRT saved to %s",
+            job_id,
+            output_file_path,
+        )
 
         await update_job(
             job_id,
