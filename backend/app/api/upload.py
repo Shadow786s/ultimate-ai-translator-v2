@@ -121,25 +121,25 @@ async def upload_srt(
             content
         )
 
-        subtitle_texts = [
+                subtitle_texts = [
             subtitle.content
             for subtitle in subtitles
         ]
 
-combined_text = " ".join(
-    subtitle_texts[:20]
-)
+        combined_text = " ".join(
+            subtitle_texts[:20]
+        )
 
-try:
+        try:
 
-    source_language = detect(
-        combined_text
-    )
+            source_language = detect(
+                combined_text
+            )
 
-except Exception:
+        except Exception:
 
-    source_language = None
-        
+            source_language = None
+
         job = Job(
             id=job_id,
             status="queued",
