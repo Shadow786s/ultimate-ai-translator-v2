@@ -1,6 +1,3 @@
-import asyncio
-import json
-
 import httpx
 
 from app.core.config import settings
@@ -20,7 +17,7 @@ class TranslationService:
         self.model = settings.TRANSLATION_MODEL
 
         print(
-    f"Translation model being used: {self.model}"
+            f"Translation model being used: {self.model}"
         )
 
         self.base_url = (
@@ -31,6 +28,7 @@ class TranslationService:
     async def translate_batch(
         self,
         subtitles: list[str],
+        source_language: str | None = None,
     ) -> list[str]:
 
         if not subtitles:
@@ -41,8 +39,17 @@ class TranslationService:
             for index, text in enumerate(subtitles)
         )
 
+        detected_language = (
+            source_language
+            if source_language
+            else "unknown"
+        )
+
         prompt = f"""
 You are an expert professional subtitle translator.
+
+The source language of these subtitles is:
+{detected_language}
 
 Translate the following subtitles into natural,
 fluent Indian Hinglish written in Roman script.
@@ -51,16 +58,19 @@ IMPORTANT RULES:
 
 1. Preserve the exact meaning of every subtitle.
 2. Preserve emotion, context, tone, and speaker intent.
-3. Do not translate word-by-word mechanically.
-4. Use natural conversational Hinglish.
-5. Do not add explanations.
-6. Do not remove any subtitle.
-7. Do not merge subtitles.
-8. Do not split subtitles.
-9. Keep the exact same numbering.
-10. Return exactly one translated line for each input line.
-11. Do not add Markdown.
-12. Do not add quotes around translations.
+3. Understand the source language correctly before translating.
+4. Do not translate word-by-word mechanically.
+5. Use natural conversational Indian Hinglish.
+6. Keep character names and proper nouns accurate.
+7. Do not add explanations.
+8. Do not remove any subtitle.
+9. Do not merge subtitles.
+10. Do not split subtitles.
+11. Keep the exact same numbering.
+12. Return exactly one translated line for each input line.
+13. Do not add Markdown.
+14. Do not add quotes around translations.
+15. Return only the numbered translations.
 
 Input subtitles:
 
