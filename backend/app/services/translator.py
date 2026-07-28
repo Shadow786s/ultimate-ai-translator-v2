@@ -198,35 +198,54 @@ the subtitles listed under "Subtitles to translate".
 
         translated = []
 
-        for line in output.splitlines():
+expected_number = 1
 
-            line = line.strip()
+for line in output.splitlines():
 
-            if not line:
-                continue
+    line = line.strip()
 
-            if "." in line:
+    if not line:
+        continue
 
-                prefix, text = line.split(
-                    ".",
-                    1,
-                )
+    if "." not in line:
+        continue
 
-                if prefix.strip().isdigit():
+    prefix, text = line.split(
+        ".",
+        1,
+    )
 
-                    translated.append(
-                        text.strip()
-                    )
+    if not prefix.strip().isdigit():
+        continue
 
-        if len(translated) != len(
-            subtitles
-        ):
+    number = int(
+        prefix.strip()
+    )
 
-            raise ValueError(
-                "Gemini translation output count "
-                "does not match input subtitle count. "
-                f"Expected {len(subtitles)}, "
-                f"received {len(translated)}."
-            )
+    if number != expected_number:
 
-        return translated
+        raise ValueError(
+            "Gemini returned invalid subtitle "
+            "numbering. "
+            f"Expected {expected_number}, "
+            f"received {number}."
+        )
+
+    translated.append(
+        text.strip()
+    )
+
+    expected_number += 1
+
+if len(translated) != len(
+    subtitles
+):
+
+    raise ValueError(
+        "Gemini translation output count "
+        "does not match input subtitle count. "
+        f"Expected {len(subtitles)}, "
+        f"received {len(translated)}."
+    )
+
+return translated
