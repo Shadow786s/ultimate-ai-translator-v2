@@ -68,6 +68,7 @@ async def process_translation_job(
     job_id: str,
     subtitles: list[str],
     batch_size: int,
+    source_language: str | None,
 ):
 
     total = len(subtitles)
@@ -138,7 +139,7 @@ async def process_translation_job(
 
         translator = TranslationService()
 
-        batch_size = settings.BATCH_SIZE
+        translated_subtitles = []
 
         for start in range(
             0,
@@ -173,7 +174,8 @@ async def process_translation_job(
 
                     batch_result = (
                         await translator.translate_batch(
-                            current_batch
+                            current_batch,
+                            source_language,
                         )
                     )
 
