@@ -120,7 +120,7 @@ async def upload_srt(
         file_path.write_bytes(
             content
         )
-
+        
         subtitle_texts = [
             subtitle.content
             for subtitle in subtitles
