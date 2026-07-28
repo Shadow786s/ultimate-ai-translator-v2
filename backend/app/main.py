@@ -4,6 +4,7 @@ from sqlalchemy import text
 
 from app.api.upload import router as upload_router
 from app.api.jobs import router as jobs_router
+from app.api.models import router as models_router
 
 from app.database.session import engine
 from app.models.job import Base
@@ -17,6 +18,7 @@ app = FastAPI(
 
 app.include_router(upload_router)
 app.include_router(jobs_router)
+app.include_router(models_router)
 
 @app.on_event("startup")
 async def startup():
