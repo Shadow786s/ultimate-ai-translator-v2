@@ -512,7 +512,6 @@ footer {
 
   .translator-card {
     padding: 24px 18px;
-
     border-radius: 22px;
   }
 
@@ -526,7 +525,6 @@ footer {
 
   .upload-area {
     min-height: 210px;
-
     padding: 24px 16px;
   }
 
@@ -537,4 +535,4 @@ footer {
   .selected-file {
     padding: 12px;
   }
-  }
+}
