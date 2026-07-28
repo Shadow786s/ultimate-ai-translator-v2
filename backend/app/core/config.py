@@ -3,13 +3,13 @@ import os
 
 class Settings:
 
-    OPENAI_API_KEY: str | None = os.getenv(
-        "OPENAI_API_KEY"
+    GEMINI_API_KEY: str | None = os.getenv(
+        "GEMINI_API_KEY"
     )
 
     TRANSLATION_MODEL: str = os.getenv(
         "TRANSLATION_MODEL",
-        "gpt-5-mini",
+        "gemini-2.5-pro",
     )
 
     BATCH_SIZE: int = int(
