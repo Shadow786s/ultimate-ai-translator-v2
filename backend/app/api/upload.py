@@ -121,7 +121,7 @@ async def upload_srt(
             content
         )
 
-            subtitle_texts = [
+        subtitle_texts = [
             subtitle.content
             for subtitle in subtitles
         ]
