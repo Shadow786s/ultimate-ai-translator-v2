@@ -29,14 +29,23 @@ class TranslationService:
         self,
         subtitles: list[str],
         source_language: str | None = None,
+        previous_context: list[str] | None = None,
+        next_context: list[str] | None = None,
     ) -> list[str]:
 
         if not subtitles:
             return []
 
-        numbered_text = "\n".join(
-            f"{index + 1}. {text}"
-            for index, text in enumerate(subtitles)
+        previous_context = (
+            previous_context
+            if previous_context
+            else []
+        )
+
+        next_context = (
+            next_context
+            if next_context
+            else []
         )
 
         detected_language = (
@@ -45,38 +54,85 @@ class TranslationService:
             else "unknown"
         )
 
+        numbered_text = "\n".join(
+            f"{index + 1}. {text}"
+            for index, text in enumerate(subtitles)
+        )
+
+        previous_context_text = (
+            "\n".join(
+                f"- {text}"
+                for text in previous_context
+            )
+            if previous_context
+            else "No previous context available."
+        )
+
+        next_context_text = (
+            "\n".join(
+                f"- {text}"
+                for text in next_context
+            )
+            if next_context
+            else "No following context available."
+        )
+
         prompt = f"""
 You are an expert professional subtitle translator.
 
 The source language of these subtitles is:
 {detected_language}
 
-Translate the following subtitles into natural,
+Translate the requested subtitles into natural,
 fluent Indian Hinglish written in Roman script.
+
+The previous and following subtitles are provided
+ONLY as context to help you understand the conversation,
+speaker intent, references, emotions, and continuity.
+
+IMPORTANT:
+- Do NOT translate the context subtitles.
+- Do NOT include the context subtitles in your output.
+- Translate ONLY the subtitles listed under
+  "Subtitles to translate".
+
+PREVIOUS SUBTITLE CONTEXT:
+{previous_context_text}
+
+SUBTITLES TO TRANSLATE:
+
+{numbered_text}
+
+FOLLOWING SUBTITLE CONTEXT:
+{next_context_text}
 
 IMPORTANT RULES:
 
 1. Preserve the exact meaning of every subtitle.
 2. Preserve emotion, context, tone, and speaker intent.
-3. Understand the source language correctly before translating.
-4. Do not translate word-by-word mechanically.
-5. Use natural conversational Indian Hinglish.
-6. Keep character names and proper nouns accurate.
-7. Do not add explanations.
-8. Do not remove any subtitle.
-9. Do not merge subtitles.
-10. Do not split subtitles.
-11. Keep the exact same numbering.
-12. Return exactly one translated line for each input line.
-13. Do not add Markdown.
-14. Do not add quotes around translations.
-15. Return only the numbered translations.
+3. Use the surrounding context to understand ambiguous
+   words, pronouns, references, and conversation continuity.
+4. Understand the source language correctly before translating.
+5. Do not translate word-by-word mechanically.
+6. Use natural conversational Indian Hinglish.
+7. Keep character names and proper nouns accurate.
+8. Preserve the intended meaning of jokes, sarcasm,
+   anger, sadness, excitement, and other emotions.
+9. Do not add explanations.
+10. Do not remove any subtitle.
+11. Do not merge subtitles.
+12. Do not split subtitles.
+13. Keep the exact same numbering.
+14. Return exactly one translated line for each
+    subtitle being translated.
+15. Do not translate or include previous context.
+16. Do not translate or include following context.
+17. Do not add Markdown.
+18. Do not add quotes around translations.
+19. Return only the numbered translations.
 
-Input subtitles:
-
-{numbered_text}
-
-Return only the numbered translations.
+Return only the numbered translations for
+the subtitles listed under "Subtitles to translate".
 """
 
         payload = {
