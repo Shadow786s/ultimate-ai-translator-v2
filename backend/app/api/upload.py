@@ -2,6 +2,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import srt
+from langdetect import detect
 
 from fastapi import (
     APIRouter,
@@ -125,10 +126,24 @@ async def upload_srt(
             for subtitle in subtitles
         ]
 
+combined_text = " ".join(
+    subtitle_texts[:20]
+)
+
+try:
+
+    source_language = detect(
+        combined_text
+    )
+
+except Exception:
+
+    source_language = None
+        
         job = Job(
             id=job_id,
             status="queued",
-            source_language=None,
+            source_language=source_language,
             target_language="hinglish",
             total_items=len(
                 subtitles
