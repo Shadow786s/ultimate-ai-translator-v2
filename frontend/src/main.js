@@ -162,17 +162,16 @@ translateBtn.addEventListener(
 
         jobStatus.textContent =
           "Status: " +
-          status.status;
-
+          status.job.status;
 
         progressText.textContent =
           "Progress: " +
-          status.progress +
+          status.job.progress +
           "%";
 
 
         if (
-          status.status ===
+          status.job.status ===
           "completed"
         ) {
 
@@ -192,14 +191,14 @@ translateBtn.addEventListener(
 
 
         if (
-          status.status ===
+          status.job.status ===
           "failed"
         ) {
 
           completed = true;
 
           throw new Error(
-            status.error_message ||
+            status.job.error_message ||
             "Translation failed."
           );
 
