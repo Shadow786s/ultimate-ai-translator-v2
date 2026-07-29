@@ -1,8 +1,16 @@
 function App() {
   return (
-    <div>
-      <h1>Ultimate AI Translator</h1>
-      <p>Frontend is working successfully.</p>
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "white",
+        color: "red",
+        padding: "50px",
+        fontSize: "40px",
+        fontWeight: "bold",
+      }}
+    >
+      APP COMPONENT WORKING
     </div>
   );
 }
