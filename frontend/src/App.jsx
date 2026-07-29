@@ -4,7 +4,7 @@ function App() {
       style={{
         minHeight: "100vh",
         background: "#0f172a",
-        color: "white",
+        color: "#ffffff",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -14,13 +14,32 @@ function App() {
         textAlign: "center",
       }}
     >
-      <h1>Ultimate AI Translator</h1>
+      <h1
+        style={{
+          color: "#ffffff",
+          fontSize: "40px",
+          marginBottom: "20px",
+        }}
+      >
+        Ultimate AI Translator
+      </h1>
 
-      <p>
+      <p
+        style={{
+          color: "#ffffff",
+          fontSize: "20px",
+          marginBottom: "10px",
+        }}
+      >
         Frontend is working successfully.
       </p>
 
-      <p>
+      <p
+        style={{
+          color: "#ffffff",
+          fontSize: "18px",
+        }}
+      >
         React is rendering correctly.
       </p>
     </div>
