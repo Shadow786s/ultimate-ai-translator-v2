@@ -4,7 +4,7 @@ function App() {
       style={{
         minHeight: "100vh",
         background: "white",
-        color: "black",
+        textcolor: "black",
         padding: "50px",
         fontSize: "30px",
       }}
