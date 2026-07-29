@@ -248,4 +248,4 @@ if len(translated) != len(
         f"received {len(translated)}."
     )
 
-return translated
+        return translated
