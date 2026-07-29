@@ -12,7 +12,7 @@ file
 
 const response =
 await fetch(
-`${API_BASE_URL}/api/upload`,
+`${API_BASE_URL}/api/upload?batch_size=100`
 {
 method:"POST",
 body:formData
