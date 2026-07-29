@@ -104,10 +104,10 @@ result.job_id
 
 }catch(error){
 
-console.error(error);
+console.log(error);
 
 alert(
-"Upload failed."
+error.message
 );
 
 }
