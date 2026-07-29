@@ -240,12 +240,11 @@ for line in output.splitlines():
 if len(translated) != len(
     subtitles
 ):
-
     raise ValueError(
         "Gemini translation output count "
         "does not match input subtitle count. "
         f"Expected {len(subtitles)}, "
         f"received {len(translated)}."
     )
-    
+
 return translated
