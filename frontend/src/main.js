@@ -97,6 +97,9 @@ const jobStatus =
 const progressText =
   document.getElementById("progressText");
 
+const batchSizeInput =
+  document.getElementById("batchSize");
+
 
 fileInput.addEventListener(
   "change",
@@ -149,11 +152,23 @@ translateBtn.addEventListener(
         "Progress: 0%";
 
 
-      const result =
-        await uploadSrt(
-          fileInput.files[0],
-          100
-        );
+      const batchSize =
+  Number(batchSizeInput.value);
+
+if (
+  batchSize < 1 ||
+  batchSize > 500
+) {
+  throw new Error(
+    "Batch size must be between 1 and 500."
+  );
+}
+
+const result =
+  await uploadSrt(
+    fileInput.files[0],
+    batchSize
+  );
 
       const jobId =
         result.job_id;
