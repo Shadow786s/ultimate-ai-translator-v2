@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy import text
 
@@ -14,6 +15,16 @@ app = FastAPI(
     title="Ultimate AI Translator",
     version="1.0.0",
     description="AI-powered subtitle translation platform",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://ultimate-ai-translator-v2-2.onrender.com",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(upload_router)
