@@ -10,7 +10,7 @@ ReactDOM.createRoot(
     style={{
       minHeight: "100vh",
       background: "white",
-      color: "black",
+      Text color: "black",
       padding: "50px",
       fontSize: "30px",
     }}
