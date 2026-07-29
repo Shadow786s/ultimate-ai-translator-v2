@@ -1,3 +1,4 @@
+import { uploadSrt } from "./api.js";
 document.getElementById("root").innerHTML = `
   <div style="
     min-height:100vh;
@@ -44,6 +45,9 @@ const fileInput =
 const fileName =
   document.getElementById("fileName");
 
+const translateBtn =
+  document.getElementById("translateBtn");
+
 fileInput.addEventListener(
   "change",
   () => {
@@ -58,6 +62,50 @@ fileInput.addEventListener(
 
     fileName.textContent =
       fileInput.files[0].name;
+
+  }
+);
+translateBtn.addEventListener(
+  "click",
+  async () => {
+
+    if (
+      fileInput.files.length === 0
+    ) {
+      alert(
+        "Please select an SRT file."
+      );
+      return;
+    }
+
+    try {
+
+      translateBtn.disabled = true;
+      translateBtn.textContent =
+        "Uploading...";
+
+      const result =
+        await uploadSrt(
+          fileInput.files[0],
+          100
+        );
+
+      alert(
+        "Job created successfully!\n\nJob ID: " +
+        result.job_id
+      );
+
+    } catch (error) {
+
+      alert(error.message);
+
+    } finally {
+
+      translateBtn.disabled = false;
+      translateBtn.textContent =
+        "Start Translation";
+
+    }
 
   }
 );
