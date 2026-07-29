@@ -247,5 +247,5 @@ if len(translated) != len(
         f"Expected {len(subtitles)}, "
         f"received {len(translated)}."
     )
-
-        return translated
+    
+return translated
