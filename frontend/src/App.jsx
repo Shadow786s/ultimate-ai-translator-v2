@@ -6,6 +6,7 @@ function App() {
         background: "white",
         color: "black",
         padding: "50px",
+        fontFamily: "Arial, sans-serif",
         fontSize: "30px",
       }}
     >
