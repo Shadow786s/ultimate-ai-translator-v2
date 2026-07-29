@@ -26,16 +26,38 @@ document.getElementById("root").innerHTML = `
       <h2>Upload SRT File</h2>
 
       <input
-        id="fileInput"
-        type="file"
-        accept=".srt"
-      />
+  id="fileInput"
+  type="file"
+  accept=".srt"
+/>
 
-      <br><br>
+<br><br>
 
-      <p id="fileName">
-        No file selected
-      </p>
+<p id="fileName">
+  No file selected
+</p>
+
+<label for="batchSize">
+  Batch Size
+</label>
+
+<br>
+
+<input
+  id="batchSize"
+  type="number"
+  min="1"
+  max="500"
+  value="100"
+  style="
+    margin-top:10px;
+    padding:8px;
+    width:100px;
+    text-align:center;
+  "
+/>
+
+<br><br>
 
       <button id="translateBtn">
         Start Translation
