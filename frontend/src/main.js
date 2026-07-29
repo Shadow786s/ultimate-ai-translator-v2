@@ -66,3 +66,54 @@ fileName.textContent =
 }
 
 });
+import { uploadSrt } from "./api.js";
+
+const translateBtn =
+document.getElementById("translateBtn");
+
+translateBtn.addEventListener(
+"click",
+async function(){
+
+if(fileInput.files.length===0){
+
+alert(
+"Please select an SRT file."
+);
+
+return;
+
+}
+
+translateBtn.disabled=true;
+translateBtn.textContent="Uploading...";
+
+try{
+
+const result=
+await uploadSrt(
+fileInput.files[0]
+);
+
+console.log(result);
+
+alert(
+"Upload successful!\n\nJob ID: "+
+result.job_id
+);
+
+}catch(error){
+
+console.error(error);
+
+alert(
+"Upload failed."
+);
+
+}
+
+translateBtn.disabled=false;
+translateBtn.textContent=
+"Start Translation";
+
+});
