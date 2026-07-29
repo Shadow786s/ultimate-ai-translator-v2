@@ -6,19 +6,5 @@ import App from "./App.jsx";
 ReactDOM.createRoot(
   document.getElementById("root")
 ).render(
-  <div
-    style={{
-      minHeight: "100vh",
-      background: "white",
-      Textcolor: "black",
-      padding: "50px",
-      fontSize: "30px",
-    }}
-  >
-    <div>App Import Test</div>
-
-    <div style={{ marginTop: "20px" }}>
-      {typeof App}
-    </div>
-  </div>
+  <App />
 );
