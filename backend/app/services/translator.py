@@ -196,55 +196,56 @@ the subtitles listed under "Subtitles to translate".
                 "from Gemini API."
             ) from error
 
-        translated = []
+                translated = []
 
-expected_number = 1
+        expected_number = 1
 
-for line in output.splitlines():
+        for line in output.splitlines():
 
-    line = line.strip()
+            line = line.strip()
 
-    if not line:
-        continue
+            if not line:
+                continue
 
-    if "." not in line:
-        continue
+            if "." not in line:
+                continue
 
-    prefix, text = line.split(
-        ".",
-        1,
-    )
+            prefix, text = line.split(
+                ".",
+                1,
+            )
 
-    if not prefix.strip().isdigit():
-        continue
+            if not prefix.strip().isdigit():
+                continue
 
-    number = int(
-        prefix.strip()
-    )
+            number = int(
+                prefix.strip()
+            )
 
-    if number != expected_number:
+            if number != expected_number:
 
-        raise ValueError(
-            "Gemini returned invalid subtitle "
-            "numbering. "
-            f"Expected {expected_number}, "
-            f"received {number}."
-        )
+                raise ValueError(
+                    "Gemini returned invalid subtitle "
+                    "numbering. "
+                    f"Expected {expected_number}, "
+                    f"received {number}."
+                )
 
-    translated.append(
-        text.strip()
-    )
+            translated.append(
+                text.strip()
+            )
 
-    expected_number += 1
+            expected_number += 1
 
-if len(translated) != len(
-    subtitles
-):
-    raise ValueError(
-        "Gemini translation output count "
-        "does not match input subtitle count. "
-        f"Expected {len(subtitles)}, "
-        f"received {len(translated)}."
-    )
+        if len(translated) != len(
+            subtitles
+        ):
 
-return translated
+            raise ValueError(
+                "Gemini translation output count "
+                "does not match input subtitle count. "
+                f"Expected {len(subtitles)}, "
+                f"received {len(translated)}."
+            )
+
+        return translated
