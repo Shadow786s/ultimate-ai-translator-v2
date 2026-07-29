@@ -1,4 +1,8 @@
-import { uploadSrt, getJobStatus } from "./api.js";
+import {
+  uploadSrt,
+  getJobStatus,
+  getDownloadUrl
+} from "./api.js";
 
 document.getElementById("root").innerHTML = `
   <div style="
@@ -183,8 +187,33 @@ translateBtn.addEventListener(
           progressText.textContent =
             "Progress: 100%";
 
-          alert(
-            "Translation completed successfully!"
+          const downloadUrl =
+            getDownloadUrl(jobId);
+
+          const downloadButton =
+            document.createElement("button");
+
+          downloadButton.textContent =
+            "Download Translated SRT";
+
+          downloadButton.style.marginTop =
+            "20px";
+
+          downloadButton.style.padding =
+            "12px 20px";
+
+          downloadButton.style.cursor =
+            "pointer";
+
+          downloadButton.onclick = () => {
+
+            window.location.href =
+              downloadUrl;
+
+          };
+
+          statusBox.appendChild(
+            downloadButton
           );
 
         }
