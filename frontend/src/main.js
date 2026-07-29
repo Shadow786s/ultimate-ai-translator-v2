@@ -8,7 +8,7 @@ document.getElementById("root").innerHTML = `
     text-align:center;
   ">
     <h1>Ultimate AI Translator</h1>
-    <p>Frontend is working successfully.</p>
+    <p>Select your SRT file</p>
 
     <div style="
       margin:40px auto;
@@ -18,11 +18,46 @@ document.getElementById("root").innerHTML = `
       border-radius:20px;
     ">
       <h2>Upload SRT File</h2>
-      <input type="file" accept=".srt" />
-      <br/><br/>
-      <button>
+
+      <input
+        id="fileInput"
+        type="file"
+        accept=".srt"
+      />
+
+      <br><br>
+
+      <p id="fileName">
+        No file selected
+      </p>
+
+      <button id="translateBtn">
         Start Translation
       </button>
     </div>
   </div>
 `;
+
+const fileInput =
+  document.getElementById("fileInput");
+
+const fileName =
+  document.getElementById("fileName");
+
+fileInput.addEventListener(
+  "change",
+  () => {
+
+    if (
+      fileInput.files.length === 0
+    ) {
+      fileName.textContent =
+        "No file selected";
+      return;
+    }
+
+    fileName.textContent =
+      fileInput.files[0].name;
+
+  }
+);
