@@ -196,7 +196,7 @@ the subtitles listed under "Subtitles to translate".
                 "from Gemini API."
             ) from error
 
-            translated = []
+        translated = []
 
         expected_number = 1
 
