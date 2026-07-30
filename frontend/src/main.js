@@ -87,6 +87,26 @@ document.getElementById("root").innerHTML = `
           No file selected
         </p>
 
+        <p
+  id="fileSize"
+  style="
+    margin:8px 0;
+    color:#94a3b8;
+  "
+>
+  File size: -
+</p>
+
+<p
+  id="subtitleCount"
+  style="
+    margin:8px 0 25px;
+    color:#94a3b8;
+  "
+>
+  Subtitle lines: -
+</p>
+
 
         <label style="
           display:block;
@@ -253,10 +273,16 @@ const progressBar =
 const batchSizeInput =
   document.getElementById("batchSize");
 
+const fileSize =
+  document.getElementById("fileSize");
+
+const subtitleCount =
+  document.getElementById("subtitleCount");
+
 
 fileInput.addEventListener(
   "change",
-  () => {
+  async () => {
 
     if (
       fileInput.files.length === 0
@@ -265,13 +291,79 @@ fileInput.addEventListener(
       fileName.textContent =
         "No file selected";
 
+      fileSize.textContent =
+        "File size: -";
+
+      subtitleCount.textContent =
+        "Subtitle lines: -";
+
       return;
+    }
+
+    const file =
+      fileInput.files[0];
+
+
+    fileName.textContent =
+      "File: " +
+      file.name;
+
+
+    const sizeInKB =
+      file.size / 1024;
+
+
+    if (
+      sizeInKB < 1024
+    ) {
+
+      fileSize.textContent =
+        "File size: " +
+        sizeInKB.toFixed(2) +
+        " KB";
+
+    } else {
+
+      const sizeInMB =
+        sizeInKB / 1024;
+
+      fileSize.textContent =
+        "File size: " +
+        sizeInMB.toFixed(2) +
+        " MB";
 
     }
 
-    fileName.textContent =
-      "Selected file: " +
-      fileInput.files[0].name;
+
+    try {
+
+      const content =
+        await file.text();
+
+
+      const subtitleBlocks =
+        content
+          .trim()
+          .split(
+            /\r?\n\r?\n/
+          )
+          .filter(
+            block =>
+              block.trim().length > 0
+          );
+
+
+      subtitleCount.textContent =
+        "Subtitle lines: " +
+        subtitleBlocks.length;
+
+
+    } catch (error) {
+
+      subtitleCount.textContent =
+        "Subtitle lines: Unable to detect";
+
+    }
 
   }
 );
