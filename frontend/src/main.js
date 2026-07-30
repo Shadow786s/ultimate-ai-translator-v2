@@ -218,6 +218,16 @@ document.getElementById("root").innerHTML = `
             Progress: 0%
           </p>
 
+          <p
+  id="etaText"
+  style="
+    margin:0 0 12px;
+    color:#38bdf8;
+  "
+>
+  ETA: Calculating...
+</p>
+
           <div
   id="translationPreviewBox"
   style="
@@ -298,6 +308,9 @@ const jobStatus =
 
 const progressText =
   document.getElementById("progressText");
+
+const etaText =
+  document.getElementById("etaText");
 
 const progressBar =
   document.getElementById("progressBar");
@@ -489,6 +502,9 @@ translateBtn.addEventListener(
       const jobId =
         result.job_id;
 
+      const startTime =
+        Date.now();
+
 
       jobStatus.textContent =
         "Translation started";
@@ -530,6 +546,40 @@ translateBtn.addEventListener(
           currentProgress +
           "%";
 
+        if (currentProgress > 0) {
+
+  const elapsedSeconds =
+    (Date.now() - startTime) / 1000;
+
+  const estimatedTotalSeconds =
+    elapsedSeconds / (currentProgress / 100);
+
+  const remainingSeconds =
+    Math.max(
+      0,
+      estimatedTotalSeconds - elapsedSeconds
+    );
+
+  const minutes =
+    Math.floor(
+      remainingSeconds / 60
+    );
+
+  const seconds =
+    Math.floor(
+      remainingSeconds % 60
+    );
+
+  etaText.textContent =
+    `ETA: ${minutes}m ${seconds}s`;
+
+} else {
+
+  etaText.textContent =
+    "ETA: Calculating...";
+
+        }
+
         if (
           status.job.translation_preview
         ) {
@@ -558,6 +608,9 @@ translateBtn.addEventListener(
 
           jobStatus.textContent =
             "Translation completed successfully!";
+
+          etaText.textContent =
+            "ETA: Completed";
 
 
           progressText.textContent =
@@ -675,6 +728,10 @@ translateBtn.addEventListener(
 
       progressBar.style.width =
         "0%";
+
+
+      etaText.textContent =
+        "ETA: Failed";
 
 
       alert(
