@@ -574,7 +574,7 @@ translateBtn.addEventListener(
           currentProgress +
           "%";
 
-const completedItems =
+const batchcompletedItems =
   Number(
     status.job.completed_items || 0
   );
