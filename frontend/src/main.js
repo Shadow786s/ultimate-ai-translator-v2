@@ -228,6 +228,16 @@ document.getElementById("root").innerHTML = `
   ETA: Calculating...
 </p>
 
+          <p
+  id="speedText"
+  style="
+    margin:0 0 12px;
+    color:#22c55e;
+  "
+>
+  Speed: Calculating...
+</p>
+
           <div
   id="translationPreviewBox"
   style="
@@ -311,6 +321,9 @@ const progressText =
 
 const etaText =
   document.getElementById("etaText");
+
+const speedText =
+  document.getElementById("speedText");
 
 const progressBar =
   document.getElementById("progressBar");
@@ -546,6 +559,35 @@ translateBtn.addEventListener(
           currentProgress +
           "%";
 
+        const completedItems =
+  Number(
+    status.job.completed_items || 0
+  );
+
+const elapsedSeconds =
+  (Date.now() - startTime) / 1000;
+
+if (
+  completedItems > 0 &&
+  elapsedSeconds > 0
+) {
+
+  const speed =
+    completedItems /
+    elapsedSeconds;
+
+  speedText.textContent =
+    "Speed: " +
+    speed.toFixed(2) +
+    " subtitles/sec";
+
+} else {
+
+  speedText.textContent =
+    "Speed: Calculating...";
+
+}
+
         if (currentProgress > 0) {
 
   const elapsedSeconds =
@@ -609,6 +651,9 @@ translateBtn.addEventListener(
           jobStatus.textContent =
             "Translation completed successfully!";
 
+          speedText.textContent =
+            "Speed: Completed";
+
           etaText.textContent =
             "ETA: Completed";
 
@@ -619,6 +664,10 @@ translateBtn.addEventListener(
 
           progressBar.style.width =
             "100%";
+
+          
+          speedText.textContent =
+            "Speed: Failed";
 
 
           const downloadUrl =
