@@ -35,6 +35,7 @@ async def update_job(
     completed_items: int | None = None,
     progress: int | None = None,
     error_message: str | None = None,
+    translation_preview: str | None = None,
 ):
     async with SessionLocal() as db:
 
@@ -60,6 +61,9 @@ async def update_job(
 
         if error_message is not None:
             job.error_message = error_message
+
+        if translation_preview is not None:
+            job.translation_preview = translation_preview
 
         await db.commit()
 
@@ -230,6 +234,13 @@ async def process_translation_job(
                 translated_subtitles
             )
 
+            translation_preview = "\n".join(
+                f"{index + 1}. {text}"
+                for index, text in enumerate(
+                    translated_subtitles
+                )
+            )
+
             progress = int(
                 (
                     completed
@@ -243,6 +254,7 @@ async def process_translation_job(
                 status="processing",
                 completed_items=completed,
                 progress=progress,
+                translation_preview=translation_preview,
             )
 
         if len(
