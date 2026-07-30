@@ -218,6 +218,38 @@ document.getElementById("root").innerHTML = `
             Progress: 0%
           </p>
 
+          <div
+  id="translationPreviewBox"
+  style="
+    margin-top:25px;
+    padding:20px;
+    background:#0f172a;
+    border-radius:12px;
+    text-align:left;
+    display:none;
+    max-height:400px;
+    overflow-y:auto;
+  "
+>
+  <h3 style="
+    margin-top:0;
+    color:#38bdf8;
+  ">
+    Live Hinglish Translation
+  </h3>
+
+  <pre
+    id="translationPreview"
+    style="
+      white-space:pre-wrap;
+      word-break:break-word;
+      color:#e2e8f0;
+      font-family:Arial;
+      line-height:1.6;
+    "
+  ></pre>
+</div>
+
           <div style="
             width:100%;
             height:12px;
@@ -272,6 +304,16 @@ const progressBar =
 
 const batchSizeInput =
   document.getElementById("batchSize");
+
+const translationPreviewBox =
+  document.getElementById(
+    "translationPreviewBox"
+  );
+
+const translationPreview =
+  document.getElementById(
+    "translationPreview"
+  );
 
 const fileSize =
   document.getElementById("fileSize");
@@ -487,6 +529,18 @@ translateBtn.addEventListener(
           "Progress: " +
           currentProgress +
           "%";
+
+        if (
+  status.job.translation_preview
+) {
+
+  translationPreviewBox.style.display =
+    "block";
+
+  translationPreview.textContent =
+    status.job.translation_preview;
+
+        }
 
 
         progressBar.style.width =
