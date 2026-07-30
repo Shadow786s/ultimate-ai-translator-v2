@@ -782,6 +782,8 @@ if (
       etaText.textContent =
         "ETA: Failed";
 
+      speedText.textContent =
+        "Speed: Failed";
 
       alert(
         error.message
