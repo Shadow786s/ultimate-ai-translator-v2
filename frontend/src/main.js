@@ -531,14 +531,14 @@ translateBtn.addEventListener(
           "%";
 
         if (
-  status.job.translation_preview
-) {
+          status.job.translation_preview
+        ) {
 
-  translationPreviewBox.style.display =
-    "block";
+          translationPreviewBox.style.display =
+            "block";
 
-  translationPreview.textContent =
-    status.job.translation_preview;
+          translationPreview.textContent =
+            status.job.translation_preview;
 
         }
 
