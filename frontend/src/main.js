@@ -574,35 +574,40 @@ translateBtn.addEventListener(
           currentProgress +
           "%";
 
-        const completedItems =
+const completedItems =
   Number(
     status.job.completed_items || 0
   );
 
-const totalItems =
+const batchCompletedItems =
+  Number(
+    status.job.completed_items || 0
+  );
+
+const batchTotalItems =
   Number(
     status.job.total_items || 0
   );
 
-const totalBatches =
+const batchTotalCount =
   Math.ceil(
-    totalItems / batchSize
+    batchTotalItems / batchSize
   );
 
-const currentBatch =
-  completedItems === 0
+const batchCurrentNumber =
+  batchCompletedItems === 0
     ? 0
     : Math.ceil(
-        completedItems / batchSize
+        batchCompletedItems / batchSize
       );
 
 currentBatchText.textContent =
   "Current Batch: " +
-  currentBatch +
+  batchCurrentNumber +
   " / " +
-  totalBatches;
+  batchTotalCount;
 
-        const completedItems =
+const completedItems =
   Number(
     status.job.completed_items || 0
   );
