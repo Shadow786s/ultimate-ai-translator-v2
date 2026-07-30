@@ -80,3 +80,19 @@ async def database_health():
             "database": "connection_failed",
             "error": str(error),
         }
+@app.post("/admin/fix-preview-column")
+async def fix_preview_column():
+
+    async with engine.begin() as connection:
+
+        await connection.execute(
+            text("""
+                ALTER TABLE jobs
+                ADD COLUMN IF NOT EXISTS translation_preview TEXT;
+            """)
+        )
+
+    return {
+        "success": True,
+        "message": "translation_preview column verified."
+    }
