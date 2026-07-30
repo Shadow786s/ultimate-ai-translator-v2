@@ -7,77 +7,227 @@ import {
 document.getElementById("root").innerHTML = `
   <div style="
     min-height:100vh;
-    background:#0f172a;
-    color:white;
-    padding:50px;
-    font-family:Arial;
-    text-align:center;
+    box-sizing:border-box;
+    background:
+      radial-gradient(circle at top, #1e3a5f 0%, #0f172a 45%, #020617 100%);
+    color:#f8fafc;
+    padding:30px 16px;
+    font-family:Arial, sans-serif;
   ">
-    <h1>Ultimate AI Translator</h1>
-    <p>Select your SRT file</p>
 
     <div style="
-      margin:40px auto;
-      max-width:500px;
-      padding:30px;
-      background:#1e293b;
-      border-radius:20px;
+      max-width:720px;
+      margin:0 auto;
+      text-align:center;
     ">
-      <h2>Upload SRT File</h2>
 
-      <input
-  id="fileInput"
-  type="file"
-  accept=".srt"
-/>
-
-<br><br>
-
-<p id="fileName">
-  No file selected
-</p>
-
-<label for="batchSize">
-  Batch Size
-</label>
-
-<br>
-
-<input
-  id="batchSize"
-  type="number"
-  min="1"
-  max="500"
-  value="100"
-  style="
-    margin-top:10px;
-    padding:8px;
-    width:100px;
-    text-align:center;
-  "
-/>
-
-<br><br>
-
-      <button id="translateBtn">
-        Start Translation
-      </button>
-
-      <div id="statusBox" style="
-        margin-top:30px;
-        display:none;
+      <h1 style="
+        margin:20px 0 8px;
+        font-size:36px;
       ">
-        <p id="jobStatus">
-          Starting...
+        Ultimate AI Translator
+      </h1>
+
+      <p style="
+        margin:0 0 35px;
+        color:#94a3b8;
+        font-size:16px;
+      ">
+        Translate your SRT subtitles into natural Indian Hinglish
+      </p>
+
+      <div style="
+        background:rgba(30,41,59,0.9);
+        border:1px solid #334155;
+        border-radius:20px;
+        padding:30px;
+        box-shadow:0 20px 50px rgba(0,0,0,0.35);
+        text-align:left;
+      ">
+
+        <h2 style="
+          margin-top:0;
+          text-align:center;
+        ">
+          Subtitle Translation
+        </h2>
+
+        <label style="
+          display:block;
+          margin-bottom:10px;
+          font-weight:bold;
+        ">
+          Select SRT File
+        </label>
+
+        <input
+          id="fileInput"
+          type="file"
+          accept=".srt"
+          style="
+            width:100%;
+            box-sizing:border-box;
+            padding:12px;
+            background:#0f172a;
+            color:#e2e8f0;
+            border:1px solid #475569;
+            border-radius:10px;
+            cursor:pointer;
+          "
+        />
+
+        <p
+          id="fileName"
+          style="
+            margin:12px 0 25px;
+            color:#94a3b8;
+            word-break:break-word;
+          "
+        >
+          No file selected
         </p>
 
-        <p id="progressText">
-          Progress: 0%
+
+        <label style="
+          display:block;
+          margin-bottom:10px;
+          font-weight:bold;
+        ">
+          Target Language
+        </label>
+
+        <div style="
+          background:#0f172a;
+          border:1px solid #475569;
+          border-radius:10px;
+          padding:12px;
+          margin-bottom:25px;
+          color:#38bdf8;
+          font-weight:bold;
+        ">
+          Indian Hinglish
+        </div>
+
+
+        <label
+          for="batchSize"
+          style="
+            display:block;
+            margin-bottom:10px;
+            font-weight:bold;
+          "
+        >
+          Batch Size
+        </label>
+
+        <p style="
+          margin:0 0 10px;
+          color:#94a3b8;
+          font-size:14px;
+        ">
+          Choose a value between 1 and 500.
         </p>
+
+        <input
+          id="batchSize"
+          type="number"
+          min="1"
+          max="500"
+          value="100"
+          style="
+            width:140px;
+            box-sizing:border-box;
+            padding:12px;
+            background:#0f172a;
+            color:#f8fafc;
+            border:1px solid #475569;
+            border-radius:10px;
+            font-size:16px;
+          "
+        />
+
+
+        <button
+          id="translateBtn"
+          style="
+            width:100%;
+            margin-top:30px;
+            padding:15px;
+            border:none;
+            border-radius:12px;
+            background:#2563eb;
+            color:white;
+            font-size:17px;
+            font-weight:bold;
+            cursor:pointer;
+          "
+        >
+          Start Translation
+        </button>
+
+
+        <div
+          id="statusBox"
+          style="
+            margin-top:30px;
+            display:none;
+            background:#0f172a;
+            border:1px solid #334155;
+            border-radius:14px;
+            padding:20px;
+          "
+        >
+
+          <p
+            id="jobStatus"
+            style="
+              margin:0 0 12px;
+              font-weight:bold;
+            "
+          >
+            Starting...
+          </p>
+
+          <p
+            id="progressText"
+            style="
+              margin:0 0 12px;
+              color:#94a3b8;
+            "
+          >
+            Progress: 0%
+          </p>
+
+          <div style="
+            width:100%;
+            height:12px;
+            background:#1e293b;
+            border-radius:20px;
+            overflow:hidden;
+          ">
+
+            <div
+              id="progressBar"
+              style="
+                width:0%;
+                height:100%;
+                background:#22c55e;
+                border-radius:20px;
+                transition:width 0.5s ease;
+              "
+            ></div>
+
+          </div>
+
+        </div>
+
       </div>
+
     </div>
+
   </div>
 `;
+
 
 const fileInput =
   document.getElementById("fileInput");
@@ -97,6 +247,9 @@ const jobStatus =
 const progressText =
   document.getElementById("progressText");
 
+const progressBar =
+  document.getElementById("progressBar");
+
 const batchSizeInput =
   document.getElementById("batchSize");
 
@@ -108,13 +261,16 @@ fileInput.addEventListener(
     if (
       fileInput.files.length === 0
     ) {
+
       fileName.textContent =
         "No file selected";
 
       return;
+
     }
 
     fileName.textContent =
+      "Selected file: " +
       fileInput.files[0].name;
 
   }
@@ -128,47 +284,73 @@ translateBtn.addEventListener(
     if (
       fileInput.files.length === 0
     ) {
+
       alert(
-        "Please select an SRT file."
+        "Please select an SRT file first."
       );
 
       return;
+
     }
+
+
+    const batchSize =
+      Number(
+        batchSizeInput.value
+      );
+
+
+    if (
+      !Number.isInteger(batchSize) ||
+      batchSize < 1 ||
+      batchSize > 500
+    ) {
+
+      alert(
+        "Batch size must be a whole number between 1 and 500."
+      );
+
+      return;
+
+    }
+
 
     try {
 
       translateBtn.disabled = true;
 
+      translateBtn.style.opacity =
+        "0.6";
+
+      translateBtn.style.cursor =
+        "not-allowed";
+
       translateBtn.textContent =
         "Uploading...";
+
 
       statusBox.style.display =
         "block";
 
+
       jobStatus.textContent =
         "Creating translation job...";
+
 
       progressText.textContent =
         "Progress: 0%";
 
 
-      const batchSize =
-  Number(batchSizeInput.value);
+      progressBar.style.width =
+        "0%";
 
-if (
-  batchSize < 1 ||
-  batchSize > 500
-) {
-  throw new Error(
-    "Batch size must be between 1 and 500."
-  );
-}
 
-const result =
-  await uploadSrt(
-    fileInput.files[0],
-    batchSize
-  );
+      const result =
+        await uploadSrt(
+          fileInput.files[0],
+          batchSize
+        );
+
 
       const jobId =
         result.job_id;
@@ -176,9 +358,6 @@ const result =
 
       jobStatus.textContent =
         "Translation started";
-
-      progressText.textContent =
-        "Progress: 0%";
 
 
       let completed = false;
@@ -201,13 +380,25 @@ const result =
           );
 
 
+        const currentProgress =
+          Number(
+            status.job.progress || 0
+          );
+
+
         jobStatus.textContent =
           "Status: " +
           status.job.status;
 
+
         progressText.textContent =
           "Progress: " +
-          status.job.progress +
+          currentProgress +
+          "%";
+
+
+        progressBar.style.width =
+          currentProgress +
           "%";
 
 
@@ -218,39 +409,91 @@ const result =
 
           completed = true;
 
+
           jobStatus.textContent =
             "Translation completed successfully!";
+
 
           progressText.textContent =
             "Progress: 100%";
 
+
+          progressBar.style.width =
+            "100%";
+
+
           const downloadUrl =
-            getDownloadUrl(jobId);
+            getDownloadUrl(
+              jobId
+            );
+
 
           const downloadButton =
-            document.createElement("button");
+            document.createElement(
+              "button"
+            );
+
 
           downloadButton.textContent =
             "Download Translated SRT";
 
+
+          downloadButton.style.width =
+            "100%";
+
+
           downloadButton.style.marginTop =
             "20px";
 
+
           downloadButton.style.padding =
-            "12px 20px";
+            "14px";
+
+
+          downloadButton.style.border =
+            "none";
+
+
+          downloadButton.style.borderRadius =
+            "10px";
+
+
+          downloadButton.style.background =
+            "#16a34a";
+
+
+          downloadButton.style.color =
+            "white";
+
+
+          downloadButton.style.fontSize =
+            "16px";
+
+
+          downloadButton.style.fontWeight =
+            "bold";
+
 
           downloadButton.style.cursor =
             "pointer";
 
-          downloadButton.onclick = () => {
 
-            window.location.href =
-              downloadUrl;
+          downloadButton.onclick =
+            () => {
 
-          };
+              window.location.href =
+                downloadUrl;
+
+            };
+
 
           statusBox.appendChild(
             downloadButton
+          );
+
+
+          alert(
+            "Translation completed successfully!"
           );
 
         }
@@ -262,6 +505,7 @@ const result =
         ) {
 
           completed = true;
+
 
           throw new Error(
             status.job.error_message ||
@@ -278,18 +522,32 @@ const result =
       jobStatus.textContent =
         "Translation failed";
 
+
       progressText.textContent =
         error.message;
+
+
+      progressBar.style.width =
+        "0%";
+
 
       alert(
         error.message
       );
 
-
     } finally {
 
       translateBtn.disabled =
         false;
+
+
+      translateBtn.style.opacity =
+        "1";
+
+
+      translateBtn.style.cursor =
+        "pointer";
+
 
       translateBtn.textContent =
         "Start Translation";
