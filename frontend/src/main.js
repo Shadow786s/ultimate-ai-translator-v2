@@ -219,6 +219,16 @@ document.getElementById("root").innerHTML = `
           </p>
 
           <p
+  id="currentBatchText"
+  style="
+    margin:0 0 12px;
+    color:#94a3b8;
+  "
+>
+  Current Batch: 0 / 0
+</p>
+
+          <p
   id="etaText"
   style="
     margin:0 0 12px;
@@ -318,6 +328,11 @@ const jobStatus =
 
 const progressText =
   document.getElementById("progressText");
+
+const currentBatchText =
+  document.getElementById(
+    "currentBatchText"
+  );
 
 const etaText =
   document.getElementById("etaText");
@@ -558,6 +573,34 @@ translateBtn.addEventListener(
           "Progress: " +
           currentProgress +
           "%";
+
+        const completedItems =
+  Number(
+    status.job.completed_items || 0
+  );
+
+const totalItems =
+  Number(
+    status.job.total_items || 0
+  );
+
+const totalBatches =
+  Math.ceil(
+    totalItems / batchSize
+  );
+
+const currentBatch =
+  completedItems === 0
+    ? 0
+    : Math.ceil(
+        completedItems / batchSize
+      );
+
+currentBatchText.textContent =
+  "Current Batch: " +
+  currentBatch +
+  " / " +
+  totalBatches;
 
         const completedItems =
   Number(
