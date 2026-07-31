@@ -1,9 +1,14 @@
+import asyncio
+import re
+
 import httpx
 
 from app.core.config import settings
 
 
 class TranslationService:
+
+    MAX_RETRIES = 5
 
     def __init__(self):
 
@@ -156,22 +161,79 @@ the subtitles listed under "Subtitles to translate".
             f"?key={self.api_key}"
         )
 
-        async with httpx.AsyncClient(
-            timeout=120.0
-        ) as client:
+        response = None
 
-            response = await client.post(
-                url,
-                json=payload,
+for attempt in range(self.MAX_RETRIES):
+
+    async with httpx.AsyncClient(
+        timeout=120.0
+    ) as client:
+
+        response = await client.post(
+            url,
+            json=payload,
+        )
+
+    if response.status_code == 200:
+        break
+
+    if response.status_code == 429:
+
+        retry_seconds = 30
+
+        try:
+
+            error_json = response.json()
+
+            details = error_json.get(
+                "error",
+                {}
+            ).get(
+                "details",
+                []
             )
 
-        if response.status_code != 200:
+            for item in details:
 
-            raise RuntimeError(
-                "Gemini API request failed: "
-                f"{response.status_code} "
-                f"{response.text}"
-            )
+                retry_delay = item.get(
+                    "retryDelay"
+                )
+
+                if retry_delay:
+
+                    retry_seconds = int(
+                        re.findall(
+                            r"\d+",
+                            retry_delay
+                        )[0]
+                    )
+
+                    break
+
+        except Exception:
+            pass
+
+        print(
+            f"Quota exceeded. Waiting {retry_seconds} seconds before retry..."
+        )
+
+        await asyncio.sleep(
+            retry_seconds
+        )
+
+        continue
+
+    raise RuntimeError(
+        "Gemini API request failed: "
+        f"{response.status_code} "
+        f"{response.text}"
+    )
+
+if response is None or response.status_code != 200:
+
+    raise RuntimeError(
+        "Gemini API request failed after maximum retries."
+    )
 
         data = response.json()
 
