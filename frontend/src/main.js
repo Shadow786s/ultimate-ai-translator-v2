@@ -660,10 +660,6 @@ translateBtn.addEventListener(
           currentProgress +
           "%";
 
-const batchcompletedItems =
-  Number(
-    status.job.completed_items || 0
-  );
 
 const batchCompletedItems =
   Number(
@@ -986,3 +982,6 @@ if (
           "#dc2626";
 
     }
+  
+  }
+);
