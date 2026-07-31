@@ -96,3 +96,27 @@ async def fix_preview_column():
         "success": True,
         "message": "translation_preview column verified."
     }
+
+@app.get("/admin/fix-retry-columns")
+async def fix_retry_columns():
+
+    async with engine.begin() as connection:
+
+        await connection.execute(
+            text("""
+                ALTER TABLE jobs
+                ADD COLUMN IF NOT EXISTS retry_seconds INTEGER NOT NULL DEFAULT 0;
+            """)
+        )
+
+        await connection.execute(
+            text("""
+                ALTER TABLE jobs
+                ADD COLUMN IF NOT EXISTS retry_message VARCHAR(255);
+            """)
+        )
+
+    return {
+        "success": True,
+        "message": "Retry columns added successfully."
+    }
