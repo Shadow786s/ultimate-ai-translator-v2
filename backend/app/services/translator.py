@@ -235,17 +235,17 @@ the subtitles listed under "Subtitles to translate".
                 "Gemini API request failed after maximum retries."
             )
 
-                data = response.json()
+        data = response.json()
 
-                try:
+        try:
 
-                    output = (
-                        data["candidates"][0]
-                        ["content"]
-                        ["parts"][0]
-                        ["text"]
-                        .strip()
-                    )
+            output = (
+                data["candidates"][0]
+                ["content"]
+                ["parts"][0]
+                ["text"]
+                .strip()
+            )
 
         except (
             KeyError,
