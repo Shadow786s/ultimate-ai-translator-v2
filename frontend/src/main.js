@@ -1,7 +1,8 @@
 import {
   uploadSrt,
   getJobStatus,
-  getDownloadUrl
+  getDownloadUrl,
+  cancelJob
 } from "./api.js";
 
 document.getElementById("root").innerHTML = `
