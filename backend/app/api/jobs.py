@@ -46,6 +46,8 @@ async def get_job_status(
             "total_items": job.total_items,
             "completed_items": job.completed_items,
             "progress": job.progress,
+            "retry_seconds": job.retry_seconds,
+            "retry_message": job.retry_message,
             "translation_preview": job.translation_preview,
             "original_filename": job.original_filename,
             "error_message": job.error_message,
