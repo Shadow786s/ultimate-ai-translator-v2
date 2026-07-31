@@ -900,7 +900,9 @@ if (
             "Translation Cancelled";
 
           progressText.textContent =
-            "Translation was cancelled by the user.";
+            "Translation Cancelled — Progress: " +
+            currentProgress +
+            "%";
 
           etaText.textContent =
             "ETA: Cancelled";
