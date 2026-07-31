@@ -36,6 +36,9 @@ async def update_job(
     progress: int | None = None,
     error_message: str | None = None,
     translation_preview: str | None = None,
+    retry_seconds: int | None = None,
+    retry_message: str | None = None,
+    clear_retry: bool = False,
 ):
     async with SessionLocal() as db:
 
@@ -65,6 +68,16 @@ async def update_job(
         if translation_preview is not None:
             job.translation_preview = translation_preview
 
+        if retry_seconds is not None:
+            job.retry_seconds = retry_seconds
+
+        if retry_message is not None:
+            job.retry_message = retry_message
+
+        if clear_retry:
+            job.retry_seconds = 0
+            job.retry_message = None
+        
         await db.commit()
 
 async def is_job_cancelled(
@@ -159,6 +172,17 @@ async def process_translation_job(
 
         translator = TranslationService()
 
+        async def handle_retry(
+            retry_seconds: int,
+            retry_message: str,
+        ):
+            await update_job(
+                job_id,
+                status="retrying",
+                retry_seconds=retry_seconds,
+                retry_message=retry_message,
+            )
+
         translated_subtitles = []
 
         for start in range(
@@ -213,6 +237,7 @@ async def process_translation_job(
                 source_language,
                 previous_context,
                 next_context,
+                on_retry=handle_retry,
             )
 
             if batch_result is None:
@@ -259,6 +284,7 @@ async def process_translation_job(
                 completed_items=completed,
                 progress=progress,
                 translation_preview=translation_preview,
+                clear_retry=True,
             )
 
         if len(
