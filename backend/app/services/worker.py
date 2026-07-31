@@ -208,52 +208,12 @@ async def process_translation_job(
 
             batch_result = None
 
-            for attempt in range(
-                settings.MAX_RETRIES
-            ):
-
-                if await is_job_cancelled(job_id):
-
-                    logger.info(
-                        "Job %s was cancelled before translation request.",
-                        job_id,
-                    )
-
-                    return None
-        
-
-                try:
-
-                    batch_result = (
-                        await translator.translate_batch(
-                            current_batch,
-                            source_language,
-                            previous_context,
-                            next_context,
-                        )
-                    )
-
-                    break
-
-                except Exception as error:
-
-                    logger.exception(
-                        "Job %s: Batch failed "
-                        "(attempt %s/%s)",
-                        job_id,
-                        attempt + 1,
-                        settings.MAX_RETRIES,
-                    )
-
-                    if (
-                        attempt
-                        == settings.MAX_RETRIES - 1
-                    ):
-                        raise
-
-                    await asyncio.sleep(
-                        2 ** attempt
-                    )
+            batch_result = await translator.translate_batch(
+                current_batch,
+                source_language,
+                previous_context,
+                next_context,
+            )
 
             if batch_result is None:
 
