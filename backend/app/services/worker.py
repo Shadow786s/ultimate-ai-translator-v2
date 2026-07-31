@@ -67,6 +67,22 @@ async def update_job(
 
         await db.commit()
 
+async def is_job_cancelled(
+    job_id: str,
+) -> bool:
+
+    async with SessionLocal() as db:
+
+        result = await db.execute(
+            select(Job.status).where(
+                Job.id == job_id
+            )
+        )
+
+        status = result.scalar_one_or_none()
+
+        return status == "cancelled"
+
 
 async def process_translation_job(
     job_id: str,
@@ -151,6 +167,15 @@ async def process_translation_job(
             batch_size,
         ):
 
+            if await is_job_cancelled(job_id):
+
+                logger.info(
+                    "Job %s was cancelled before processing batch.",
+                    job_id,
+                )
+
+                return None
+
             end = min(
                 start + batch_size,
                 total,
@@ -186,6 +211,16 @@ async def process_translation_job(
             for attempt in range(
                 settings.MAX_RETRIES
             ):
+
+                if await is_job_cancelled(job_id):
+
+                    logger.info(
+                        "Job %s was cancelled before translation request.",
+                        job_id,
+                    )
+
+                    return None
+        
 
                 try:
 
@@ -229,6 +264,15 @@ async def process_translation_job(
             translated_subtitles.extend(
                 batch_result
             )
+
+            if await is_job_cancelled(job_id):
+
+                logger.info(
+                    "Job %s was cancelled after batch completion.",
+                    job_id,
+                )
+
+                return None
 
             completed = len(
                 translated_subtitles
