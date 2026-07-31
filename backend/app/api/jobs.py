@@ -54,6 +54,69 @@ async def get_job_status(
         },
     }
 
+@router.post("/jobs/{job_id}/cancel")
+async def cancel_translation_job(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+
+    result = await db.execute(
+        select(Job).where(
+            Job.id == job_id
+        )
+    )
+
+    job = result.scalar_one_or_none()
+
+    if job is None:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found.",
+        )
+
+    if job.status == "completed":
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Translation job is already completed."
+            ),
+        )
+
+    if job.status == "failed":
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Translation job has already failed."
+            ),
+        )
+
+    if job.status == "cancelled":
+
+        return {
+            "success": True,
+            "message": (
+                "Translation job is already cancelled."
+            ),
+            "job_id": job.id,
+            "status": job.status,
+        }
+
+    job.status = "cancelled"
+
+    await db.commit()
+
+    return {
+        "success": True,
+        "message": (
+            "Translation cancellation requested."
+        ),
+        "job_id": job.id,
+        "status": job.status,
+    }
+
 OUTPUT_DIR = Path(
     "/tmp/ultimate-ai-translator/outputs"
 )
