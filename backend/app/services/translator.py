@@ -174,6 +174,10 @@ the subtitles listed under "Subtitles to translate".
                     json=payload,
                 )
 
+                print(
+                    f"Attempt {attempt + 1}: Status = {response.status_code}"
+                ) 
+
             if response.status_code == 200:
                 break
 
@@ -217,6 +221,10 @@ the subtitles listed under "Subtitles to translate".
                     f"Quota exceeded. Waiting {retry_seconds} seconds before retry..."
                 )
 
+                print(
+                    f"Retrying after {retry_seconds} seconds..."
+                )
+
                 await asyncio.sleep(
                     retry_seconds
                 )
@@ -232,7 +240,9 @@ the subtitles listed under "Subtitles to translate".
         if response is None or response.status_code != 200:
 
             raise RuntimeError(
-                "Gemini API request failed after maximum retries."
+                f"Gemini API request failed after maximum retries.\n"
+                f"Last Status: {response.status_code if response else 'No Response'}\n"
+                f"Response: {response.text if response else 'No Response'}"
             )
 
         data = response.json()
