@@ -1,5 +1,6 @@
 import asyncio
 import re
+from collections.abc import Awaitable, Callable
 
 import httpx
 
@@ -36,6 +37,10 @@ class TranslationService:
         source_language: str | None = None,
         previous_context: list[str] | None = None,
         next_context: list[str] | None = None,
+        on_retry: Callable[
+            [int, str],
+            Awaitable[None],
+        ] | None = None,
     ) -> list[str]:
 
         if not subtitles:
@@ -217,6 +222,11 @@ the subtitles listed under "Subtitles to translate".
                 except Exception:
                     pass
 
+                retry_message = (
+                    "Gemini quota exceeded. "
+                    "Automatically retrying..."
+                )
+
                 print(
                     f"Quota exceeded. Waiting {retry_seconds} seconds before retry..."
                 )
@@ -224,6 +234,13 @@ the subtitles listed under "Subtitles to translate".
                 print(
                     f"Retrying after {retry_seconds} seconds..."
                 )
+
+                if on_retry is not None:
+
+                    await on_retry(
+                        retry_seconds,
+                        retry_message,
+                    )
 
                 await asyncio.sleep(
                     retry_seconds
