@@ -301,25 +301,49 @@ document.getElementById("root").innerHTML = `
 </div>
 
           <div style="
-            width:100%;
-            height:12px;
-            background:#1e293b;
-            border-radius:20px;
-            overflow:hidden;
-          ">
+  width:100%;
+  height:24px;
+  background:#1e293b;
+  border-radius:20px;
+  overflow:hidden;
+  position:relative;
+">
 
-            <div
-              id="progressBar"
-              style="
-                width:0%;
-                height:100%;
-                background:#22c55e;
-                border-radius:20px;
-                transition:width 0.5s ease;
-              "
-            ></div>
+  <div
+    id="progressBar"
+    style="
+      width:0%;
+      height:100%;
+      background:#22c55e;
+      border-radius:20px;
+      transition:width 0.5s ease;
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-width:0;
+    "
+  >
 
-          </div>
+    <span
+      id="progressPercent"
+      style="
+        position:absolute;
+        left:50%;
+        top:50%;
+        transform:translate(-50%, -50%);
+        color:white;
+        font-size:13px;
+        font-weight:bold;
+        white-space:nowrap;
+      "
+    >
+      0%
+    </span>
+
+  </div>
+
+</div>
 
         </div>
 
@@ -365,6 +389,9 @@ const cancelBtn =
 
 const progressBar =
   document.getElementById("progressBar");
+
+const progressPercent =
+  document.getElementById("progressPercent");
 
 const batchSizeInput =
   document.getElementById("batchSize");
@@ -552,7 +579,7 @@ translateBtn.addEventListener(
 
       progressBar.style.width =
         "0%";
-
+      
 
       const result =
         await uploadSrt(
@@ -767,6 +794,10 @@ if (
 
 
         progressBar.style.width =
+          currentProgress +
+          "%";
+
+        progressPercent.textContent =
           currentProgress +
           "%";
 
