@@ -249,24 +249,7 @@ document.getElementById("root").innerHTML = `
   Speed: Calculating...
 </p>
 
-          <button
-  id="cancelBtn"
-  style="
-    width:100%;
-    margin-top:10px;
-    padding:14px;
-    border:none;
-    border-radius:10px;
-    background:#dc2626;
-    color:white;
-    font-size:16px;
-    font-weight:bold;
-    cursor:pointer;
-    display:none;
-  "
->
-  Cancel Translation
-</button>
+          
          
           <div
   id="translationPreviewBox"
@@ -344,6 +327,25 @@ document.getElementById("root").innerHTML = `
   </div>
 
 </div>
+
+<button
+  id="cancelBtn"
+  style="
+    width:100%;
+    margin-top:10px;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    background:#dc2626;
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    display:none;
+  "
+>
+  Cancel Translation
+</button>
 
         </div>
 
