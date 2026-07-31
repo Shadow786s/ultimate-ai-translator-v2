@@ -249,6 +249,25 @@ document.getElementById("root").innerHTML = `
   Speed: Calculating...
 </p>
 
+          <button
+  id="cancelBtn"
+  style="
+    width:100%;
+    margin-top:10px;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    background:#dc2626;
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    display:none;
+  "
+>
+  Cancel Translation
+</button>
+         
           <div
   id="translationPreviewBox"
   style="
@@ -340,6 +359,9 @@ const etaText =
 
 const speedText =
   document.getElementById("speedText");
+
+const cancelBtn =
+  document.getElementById("cancelBtn");
 
 const progressBar =
   document.getElementById("progressBar");
@@ -504,6 +526,17 @@ translateBtn.addEventListener(
       translateBtn.textContent =
         "Uploading...";
 
+      cancelBtn.style.display =
+        "block";
+
+      cancelBtn.disabled =
+        false;
+
+      cancelBtn.textContent =
+        "Cancel Translation";
+
+      cancelBtn.style.background =
+        "#dc2626";
 
       statusBox.style.display =
         "block";
@@ -530,6 +563,58 @@ translateBtn.addEventListener(
 
       const jobId =
         result.job_id;
+
+      cancelBtn.style.display =
+        "block";
+
+      cancelBtn.disabled =
+        false;
+
+      cancelBtn.textContent =
+        "Cancel Translation";
+
+      cancelBtn.onclick =
+        async () => {
+
+          try {
+
+            cancelBtn.disabled =
+              true;
+
+            cancelBtn.textContent =
+              "Cancelling...";
+
+
+            const cancelResult =
+              await cancelJob(
+                jobId
+              );
+
+
+            jobStatus.textContent =
+              "Translation cancellation requested";
+
+
+            cancelBtn.textContent =
+              "Cancellation Requested";
+
+
+          } catch (error) {
+
+            cancelBtn.disabled =
+              false;
+
+            cancelBtn.textContent =
+              "Cancel Translation";
+
+
+            alert(
+              error.message
+            );
+
+          }
+
+        };
 
       const startTime =
         Date.now();
@@ -637,7 +722,8 @@ if (
 
 }
 
-        if (currentProgress > 0) {
+    
+  if (currentProgress > 0) {
 
   const elapsedSeconds =
     (Date.now() - startTime) / 1000;
@@ -713,10 +799,6 @@ if (
 
           progressBar.style.width =
             "100%";
-
-          
-          speedText.textContent =
-            "Speed: Failed";
 
 
           const downloadUrl =
@@ -811,6 +893,38 @@ if (
 
         }
 
+        if (
+          status.job.status ===
+          "cancelled"
+        ) {
+
+          completed = true;
+
+          jobStatus.textContent =
+            "Translation Cancelled";
+
+          progressText.textContent =
+            "Translation was cancelled by the user.";
+
+          etaText.textContent =
+            "ETA: Cancelled";
+
+          speedText.textContent =
+            "Speed: Cancelled";
+
+          cancelBtn.textContent =
+            "Translation Cancelled";
+
+          cancelBtn.disabled =
+            true;
+
+          cancelBtn.style.background =
+            "#64748b";
+
+          break;
+
+        }
+
       }
 
 
@@ -840,22 +954,35 @@ if (
 
     } finally {
 
-      translateBtn.disabled =
-        false;
+        translateBtn.disabled =
+          false;
 
 
-      translateBtn.style.opacity =
-        "1";
+        translateBtn.style.opacity =
+          "1";
 
 
-      translateBtn.style.cursor =
-        "pointer";
+        translateBtn.style.cursor =
+          "pointer";
 
 
-      translateBtn.textContent =
-        "Start Translation";
+        translateBtn.textContent =
+          "Start Translation";
+
+
+        cancelBtn.style.display =
+          "none";
+
+
+        cancelBtn.disabled =
+          false;
+
+
+        cancelBtn.textContent =
+          "Cancel Translation";
+
+
+        cancelBtn.style.background =
+          "#dc2626";
 
     }
-
-  }
-);
