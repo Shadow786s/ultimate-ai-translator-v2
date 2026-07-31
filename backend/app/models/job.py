@@ -53,6 +53,17 @@ class Job(Base):
         nullable=False,
     )
 
+    retry_seconds: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        nullable=False,
+    )
+
+    retry_message: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
     original_filename: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
