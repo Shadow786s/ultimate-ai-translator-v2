@@ -163,89 +163,89 @@ the subtitles listed under "Subtitles to translate".
 
         response = None
 
-for attempt in range(self.MAX_RETRIES):
+        for attempt in range(settings.MAX_RETRIES):
 
-    async with httpx.AsyncClient(
-        timeout=120.0
-    ) as client:
+            async with httpx.AsyncClient(
+                timeout=120.0
+            ) as client:
 
-        response = await client.post(
-            url,
-            json=payload,
-        )
-
-    if response.status_code == 200:
-        break
-
-    if response.status_code == 429:
-
-        retry_seconds = 30
-
-        try:
-
-            error_json = response.json()
-
-            details = error_json.get(
-                "error",
-                {}
-            ).get(
-                "details",
-                []
-            )
-
-            for item in details:
-
-                retry_delay = item.get(
-                    "retryDelay"
+                response = await client.post(
+                    url,
+                    json=payload,
                 )
 
-                if retry_delay:
+            if response.status_code == 200:
+                break
 
-                    retry_seconds = int(
-                        re.findall(
-                            r"\d+",
-                            retry_delay
-                        )[0]
+            if response.status_code == 429:
+
+                retry_seconds = 30
+
+                try:
+
+                    error_json = response.json()
+
+                    details = error_json.get(
+                        "error",
+                        {}
+                    ).get(
+                        "details",
+                        []
                     )
 
-                    break
+                    for item in details:
 
-        except Exception:
-            pass
+                        retry_delay = item.get(
+                            "retryDelay"
+                        )
 
-        print(
-            f"Quota exceeded. Waiting {retry_seconds} seconds before retry..."
-        )
+                        if retry_delay:
 
-        await asyncio.sleep(
-            retry_seconds
-        )
+                            retry_seconds = int(
+                                re.findall(
+                                    r"\d+",
+                                    retry_delay
+                                )[0]
+                            )
 
-        continue
+                            break
 
-    raise RuntimeError(
-        "Gemini API request failed: "
-        f"{response.status_code} "
-        f"{response.text}"
-    )
+                except Exception:
+                    pass
 
-if response is None or response.status_code != 200:
+                print(
+                    f"Quota exceeded. Waiting {retry_seconds} seconds before retry..."
+                )
 
-    raise RuntimeError(
-        "Gemini API request failed after maximum retries."
-    )
+                await asyncio.sleep(
+                    retry_seconds
+                )
 
-        data = response.json()
+                continue
 
-        try:
-
-            output = (
-                data["candidates"][0]
-                ["content"]
-                ["parts"][0]
-                ["text"]
-                .strip()
+            raise RuntimeError(
+                "Gemini API request failed: "
+                f"{response.status_code} "
+                f"{response.text}"
             )
+
+        if response is None or response.status_code != 200:
+
+            raise RuntimeError(
+                "Gemini API request failed after maximum retries."
+            )
+
+                data = response.json()
+
+                try:
+
+                    output = (
+                        data["candidates"][0]
+                        ["content"]
+                        ["parts"][0]
+                        ["text"]
+                        .strip()
+                    )
 
         except (
             KeyError,
