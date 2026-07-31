@@ -414,6 +414,8 @@ const fileSize =
 const subtitleCount =
   document.getElementById("subtitleCount");
 
+let retryCountdownTimer = null;
+
 
 fileInput.addEventListener(
   "change",
@@ -683,7 +685,27 @@ translateBtn.addEventListener(
           "Status: " +
           status.job.status;
 
+        const retrySeconds = Number(
+          status.job.retry_seconds || 0
+        );
 
+        const retryMessage =
+          status.job.retry_message || "";
+
+        if (retrySeconds > 0) {
+
+          jobStatus.textContent =
+            retryMessage ||
+            "Gemini quota limit reached. Retrying automatically...";
+
+        } else {
+
+          jobStatus.textContent =
+            "Status: " +
+            status.job.status;
+
+        }
+        
         progressText.textContent =
           "Progress: " +
           currentProgress +
