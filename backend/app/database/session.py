@@ -37,6 +37,21 @@ engine = create_async_engine(
     pool_pre_ping=True,
 )
 
+async def initialize_database():
+    async with engine.begin() as conn:
+        await conn.exec_driver_sql(
+            """
+            ALTER TABLE jobs
+            ADD COLUMN IF NOT EXISTS retry_seconds INTEGER NOT NULL DEFAULT 0
+            """
+        )
+
+        await conn.exec_driver_sql(
+            """
+            ALTER TABLE jobs
+            ADD COLUMN IF NOT EXISTS retry_message VARCHAR(255)
+            """
+        )
 
 SessionLocal = async_sessionmaker(
     bind=engine,
