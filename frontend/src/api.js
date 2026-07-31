@@ -44,3 +44,27 @@ export async function getJobStatus(jobId) {
 export function getDownloadUrl(jobId) {
   return `${API_BASE_URL}/api/jobs/${jobId}/download`;
 }
+
+export async function cancelJob(jobId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/jobs/${jobId}/cancel`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data.detail ||
+      data.message ||
+      "Unable to cancel translation job."
+    );
+  }
+
+  return data;
+}
