@@ -22,7 +22,7 @@ class Settings:
     MAX_RETRIES: int = int(
         os.getenv(
             "MAX_RETRIES",
-            "3",
+            "5",
         )
     )
 
