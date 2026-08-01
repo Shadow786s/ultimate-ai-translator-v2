@@ -720,6 +720,20 @@ if (retrySeconds > 0) {
 
     }
 
+    // Initial UI state
+    jobStatus.textContent =
+      `⚠️ ${
+        retryMessage ||
+        "Gemini quota limit reached."
+      }`;
+
+    progressText.textContent =
+      `🔄 Retrying automatically... ${retryCountdownValue}s`;
+
+    etaText.textContent =
+      "ETA: Waiting for retry...";
+
+
     retryCountdownTimer =
       setInterval(
         () => {
@@ -737,10 +751,10 @@ if (retrySeconds > 0) {
               }`;
 
             progressText.textContent =
-              `🔄 Retrying automatically...`;
+              `🔄 Retrying automatically... ${retryCountdownValue}s`;
 
             etaText.textContent =
-              `⏳ Next attempt in ${retryCountdownValue}s`;
+              "ETA: Waiting for retry...";
 
           }
 
@@ -761,23 +775,26 @@ if (retrySeconds > 0) {
         1000
       );
 
+  } else {
+
+    // Existing retry countdown ko preserve karo
+    jobStatus.textContent =
+      `⚠️ ${
+        retryMessage ||
+        "Gemini quota limit reached."
+      }`;
+
+    progressText.textContent =
+      `🔄 Retrying automatically... ${retryCountdownValue}s`;
+
+    etaText.textContent =
+      "ETA: Waiting for retry...";
+
   }
-
-  // Yahan retrySeconds ko dobara retryCountdownValue mein assign nahi karna
-  jobStatus.textContent =
-    `⚠️ ${
-      retryMessage ||
-      "Gemini quota limit reached."
-    }`;
-
-  progressText.textContent =
-    `🔄 Retrying automatically...`;
-
-  etaText.textContent =
-    `⏳ Next attempt in ${retryCountdownValue}s`;
 
 } else {
 
+  // Retry khatam hone par countdown timer stop karo
   if (retryCountdownTimer) {
 
     clearInterval(
@@ -795,6 +812,7 @@ if (retrySeconds > 0) {
   retryCountdownJobId =
     null;
 
+  // Normal status restore
   jobStatus.textContent =
     "Status: " +
     status.job.status;
