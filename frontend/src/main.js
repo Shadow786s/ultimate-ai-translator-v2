@@ -731,10 +731,16 @@ if (retrySeconds > 0) {
             retryCountdownValue--;
 
             jobStatus.textContent =
-              `${
+              `⚠️ ${
                 retryMessage ||
-                "Gemini quota limit reached. Retrying automatically..."
-              } Waiting ${retryCountdownValue}s before retry...`;
+                "Gemini quota limit reached."
+              }`;
+
+            progressText.textContent =
+              `🔄 Retrying automatically...`;
+
+            etaText.textContent =
+              `⏳ Next attempt in ${retryCountdownValue}s`;
 
           }
 
@@ -759,10 +765,16 @@ if (retrySeconds > 0) {
 
   // Yahan retrySeconds ko dobara retryCountdownValue mein assign nahi karna
   jobStatus.textContent =
-    `${
+    `⚠️ ${
       retryMessage ||
-      "Gemini quota limit reached. Retrying automatically..."
-    } Waiting ${retryCountdownValue}s before retry...`;
+      "Gemini quota limit reached."
+    }`;
+
+  progressText.textContent =
+    `🔄 Retrying automatically...`;
+
+  etaText.textContent =
+    `⏳ Next attempt in ${retryCountdownValue}s`;
 
 } else {
 
