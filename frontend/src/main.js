@@ -433,8 +433,7 @@ const subtitleCount =
 let retryCountdownTimer = null;
 let retryCountdownValue = 0;
 let retryCountdownJobId = null;
-let currentAttempt = 0;
-const maxAttempts = 5;
+
 
 
 fileInput.addEventListener(
@@ -669,11 +668,6 @@ translateBtn.addEventListener(
 
       const startTime =
         Date.now();
-
-      currentAttempt = 1;
-
-      attemptText.textContent =
-        `Attempt: ${currentAttempt} / ${maxAttempts}`;
       
 
       jobStatus.textContent =
@@ -699,6 +693,14 @@ translateBtn.addEventListener(
             jobId
           );
 
+        const backendAttempt =
+          Number(status.job.current_attempt || 1);
+
+        const backendMaxAttempts =
+          Number(status.job.max_attempts || 5);
+
+        attemptText.textContent =
+          `Attempt: ${backendAttempt} / ${backendMaxAttempts}`;
 
         const currentProgress =
           Number(
@@ -725,12 +727,6 @@ if (retrySeconds > 0) {
     retryCountdownJobId !== jobId ||
     retryCountdownValue <= 0
   ) {
-
-    if (currentAttempt < maxAttempts) {
-
-        currentAttempt++;
-
-    }
     
 
     retryCountdownJobId =
