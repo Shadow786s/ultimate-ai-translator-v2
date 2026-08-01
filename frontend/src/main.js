@@ -736,7 +736,7 @@ if (retrySeconds > 0) {
       retrySeconds;
 
     attemptText.textContent =
-      `Attempt: ${currentAttempt} / ${maxAttempts}`;
+      `Attempt: ${backendAttempt} / ${backendMaxAttempts}`;
 
     if (retryCountdownTimer) {
 
