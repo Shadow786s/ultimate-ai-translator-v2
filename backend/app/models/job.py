@@ -59,6 +59,11 @@ class Job(Base):
         nullable=False,
     )
 
+    retry_until: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+
     retry_message: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
