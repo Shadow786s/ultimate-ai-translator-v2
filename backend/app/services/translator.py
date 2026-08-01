@@ -36,7 +36,7 @@ class TranslationService:
         previous_context: list[str] | None = None,
         next_context: list[str] | None = None,
         on_retry: Callable[
-            [int, str, int, int],
+            [int, str],
             Awaitable[None],
         ] | None = None,
     ) -> list[str]:
@@ -167,8 +167,6 @@ the subtitles listed under "Subtitles to translate".
         response = None
 
         for attempt in range(settings.MAX_RETRIES):
-            
-            current_attempt = attempt + 1
 
             async with httpx.AsyncClient(
                 timeout=120.0
@@ -240,8 +238,6 @@ the subtitles listed under "Subtitles to translate".
                     await on_retry(
                         retry_seconds,
                         retry_message,
-                        current_attempt,
-                        settings.MAX_RETRIES,
                     )
 
                 await asyncio.sleep(
