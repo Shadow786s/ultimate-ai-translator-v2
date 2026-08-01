@@ -123,7 +123,34 @@ async def fix_retry_columns():
             """)
         )
    
-     return {
+    return {
         "success": True,
         "message": "Retry and attempt columns added successfully."
     }
+
+@app.get("/admin/remove-attempt-columns")
+async def remove_attempt_columns():
+
+    async with engine.begin() as connection:
+
+        await connection.execute(
+            text("""
+                ALTER TABLE jobs
+                DROP COLUMN IF EXISTS current_attempt;
+            """)
+        )
+
+        await connection.execute(
+            text("""
+                ALTER TABLE jobs
+                DROP COLUMN IF EXISTS max_attempts;
+            """)
+        )
+
+    return {
+        "success": True,
+        "message": (
+            "Attempt tracking columns removed successfully."
+        ),
+    }
+
