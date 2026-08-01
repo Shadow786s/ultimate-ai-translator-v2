@@ -727,7 +727,7 @@ if (retrySeconds > 0) {
   ) {
 
     currentAttempt++;
-    }
+    
 
     retryCountdownJobId =
       jobId;
