@@ -415,6 +415,8 @@ const subtitleCount =
   document.getElementById("subtitleCount");
 
 let retryCountdownTimer = null;
+let retryCountdownValue = 0;
+let retryCountdownJobId = null;
 
 
 fileInput.addEventListener(
@@ -685,6 +687,7 @@ translateBtn.addEventListener(
           "Status: " +
           status.job.status;
 
+        
         const retrySeconds = Number(
           status.job.retry_seconds || 0
         );
@@ -694,41 +697,72 @@ translateBtn.addEventListener(
 
         if (retrySeconds > 0) {
 
-          if (retryCountdownTimer) {
-            clearInterval(retryCountdownTimer);
+          // New retry countdown detected
+          if (
+            retryCountdownJobId !== jobId ||
+            retryCountdownValue <= 0 ||
+            retrySeconds > retryCountdownValue + 2
+          ) {
+
+            retryCountdownJobId =
+              jobId;
+
+            retryCountdownValue =
+              retrySeconds;
+
+            if (retryCountdownTimer) {
+
+              clearInterval(
+                retryCountdownTimer
+              );
+
+              retryCountdownTimer =
+                null;
+
+            }
+
+            retryCountdownTimer =
+              setInterval(
+                () => {
+
+                  if (
+                    retryCountdownValue > 0
+                  ) {
+
+                    retryCountdownValue--;
+
+                    jobStatus.textContent =
+                      `${
+                        retryMessage ||
+                        "Gemini quota limit reached. Retrying automatically..."
+                      } Waiting ${retryCountdownValue}s before retry...`;
+
+                  }
+
+                  if (
+                    retryCountdownValue <= 0
+                  ) {
+
+                    clearInterval(
+                      retryCountdownTimer
+                    );
+
+                    retryCountdownTimer =
+                      null;
+
+                  }
+
+                },
+                1000
+              );
+
           }
 
-          let remainingSeconds =
-            retrySeconds;
-
           jobStatus.textContent =
-            `${retryMessage || "Gemini quota exceeded. Automatically retrying..."} ${remainingSeconds}s`;
-
-          retryCountdownTimer =
-            setInterval(() => {
-
-              remainingSeconds--;
-
-              if (remainingSeconds > 0) {
-
-                jobStatus.textContent =
-                  `${retryMessage || "Gemini quota exceeded. Automatically retrying..."} ${remainingSeconds}s`;
-
-              } else {
-
-                clearInterval(
-                  retryCountdownTimer
-                );
-
-                retryCountdownTimer =
-                  null;
-
-                jobStatus.textContent =
-                  "Retrying now...";
-
-              }
-
-            }, 1000);
+            `${
+              retryMessage ||
+              "Gemini quota limit reached. Retrying automatically..."
+            } Waiting ${retryCountdownValue}s before retry...`;
 
         } else {
 
@@ -738,16 +772,24 @@ translateBtn.addEventListener(
               retryCountdownTimer
             );
 
-            retryCountdownTimer =
+             retryCountdownTimer =
               null;
 
           }
+
+          retryCountdownValue =
+            0;
+
+          retryCountdownJobId =
+            null;
 
           jobStatus.textContent =
             "Status: " +
             status.job.status;
 
         }
+
+          
         
         progressText.textContent =
           "Progress: " +
@@ -1048,40 +1090,50 @@ if (
         error.message
       );
 
-    } finally {
+    } } finally {
 
-        translateBtn.disabled =
-          false;
+          if (retryCountdownTimer) {
 
+            clearInterval(
+              retryCountdownTimer
+            );
 
-        translateBtn.style.opacity =
-          "1";
+             retryCountdownTimer =
+              null;
 
+          }
 
-        translateBtn.style.cursor =
-          "pointer";
+          retryCountdownValue =
+            0;
 
+          retryCountdownJobId =
+            null;
 
-        translateBtn.textContent =
-          "Start Translation";
+          translateBtn.disabled =
+            false;
 
+          translateBtn.style.opacity =
+            "1";
 
-        cancelBtn.style.display =
-          "none";
+          translateBtn.style.cursor =
+            "pointer";
 
+          translateBtn.textContent =
+            "Start Translation";
 
-        cancelBtn.disabled =
-          false;
+          cancelBtn.style.display =
+            "none";
 
+          cancelBtn.disabled =
+            false;
 
-        cancelBtn.textContent =
-          "Cancel Translation";
+          cancelBtn.textContent =
+            "Cancel Translation";
 
+          cancelBtn.style.background =
+            "#dc2626";
 
-        cancelBtn.style.background =
-          "#dc2626";
-
-    }
+      }
   
   }
 );
