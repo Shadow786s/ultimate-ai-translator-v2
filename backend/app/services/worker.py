@@ -181,6 +181,8 @@ async def process_translation_job(
         async def handle_retry(
             retry_seconds: int,
             retry_message: str,
+            current_attempt: int,
+            max_attempts: int,
         ):
 
             retry_until = (
@@ -196,6 +198,8 @@ async def process_translation_job(
                 retry_seconds=retry_seconds,
                 retry_until=retry_until,
                 retry_message=retry_message,
+                current_attempt=current_attempt,
+                max_attempts=max_attempts,
             )
 
         translated_subtitles = []
