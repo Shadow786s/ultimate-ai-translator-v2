@@ -53,58 +53,15 @@ class Job(Base):
         nullable=False,
     )
 
-    from datetime import datetime
-from uuid import uuid4
-
-from sqlalchemy import DateTime, Integer, String, Text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-class Job(Base):
-    __tablename__ = "jobs"
-
-    id: Mapped[str] = mapped_column(
-        String(36),
-        primary_key=True,
-        default=lambda: str(uuid4()),
-    )
-
-    status: Mapped[str] = mapped_column(
-        String(30),
-        default="queued",
-        nullable=False,
-    )
-
-    source_language: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-    )
-
-    target_language: Mapped[str] = mapped_column(
-        String(50),
-        default="hinglish",
-        nullable=False,
-    )
-
-    total_items: Mapped[int] = mapped_column(
+    current_attempt: Mapped[int] = mapped_column(
         Integer,
-        default=0,
+        default=1,
         nullable=False,
     )
 
-    completed_items: Mapped[int] = mapped_column(
+    max_attempts: Mapped[int] = mapped_column(
         Integer,
-        default=0,
-        nullable=False,
-    )
-
-    progress: Mapped[int] = mapped_column(
-        Integer,
-        default=0,
+        default=5,
         nullable=False,
     )
 
