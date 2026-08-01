@@ -1090,7 +1090,7 @@ if (
         error.message
       );
 
-    } } finally {
+      } finally {
 
           if (retryCountdownTimer) {
 
