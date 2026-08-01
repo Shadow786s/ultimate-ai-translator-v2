@@ -122,22 +122,8 @@ async def fix_retry_columns():
                 ADD COLUMN IF NOT EXISTS retry_until TIMESTAMP NULL;
             """)
         )
-
-        await connection.execute(
-            text("""
-                ALTER TABLE jobs
-                ADD COLUMN IF NOT EXISTS current_attempt INTEGER NOT NULL DEFAULT 1;
-            """)
-        )
-
-        await connection.execute(
-            text("""
-                ALTER TABLE jobs
-                ADD COLUMN IF NOT EXISTS max_attempts INTEGER NOT NULL DEFAULT 5;
-            """)
-        )
-
-    return {
+   
+     return {
         "success": True,
         "message": "Retry and attempt columns added successfully."
     }
