@@ -689,105 +689,105 @@ translateBtn.addEventListener(
 
         
         const retrySeconds = Number(
-          status.job.retry_seconds || 0
-        );
+  status.job.retry_seconds || 0
+);
 
-        const retryMessage =
-          status.job.retry_message || "";
+const retryMessage =
+  status.job.retry_message || "";
 
-        if (retrySeconds > 0) {
+if (retrySeconds > 0) {
 
-          // New retry countdown detected
+  // Sirf naya retry cycle start hone par countdown initialize karo
+  if (
+    retryCountdownJobId !== jobId ||
+    retryCountdownValue <= 0
+  ) {
+
+    retryCountdownJobId =
+      jobId;
+
+    retryCountdownValue =
+      retrySeconds;
+
+    if (retryCountdownTimer) {
+
+      clearInterval(
+        retryCountdownTimer
+      );
+
+      retryCountdownTimer =
+        null;
+
+    }
+
+    retryCountdownTimer =
+      setInterval(
+        () => {
+
           if (
-            retryCountdownJobId !== jobId ||
-            retryCountdownValue <= 0 ||
-            retrySeconds > retryCountdownValue + 2
+            retryCountdownValue > 0
           ) {
 
-            retryCountdownJobId =
-              jobId;
+            retryCountdownValue--;
 
-            retryCountdownValue =
-              retrySeconds;
-
-            if (retryCountdownTimer) {
-
-              clearInterval(
-                retryCountdownTimer
-              );
-
-              retryCountdownTimer =
-                null;
-
-            }
-
-            retryCountdownTimer =
-              setInterval(
-                () => {
-
-                  if (
-                    retryCountdownValue > 0
-                  ) {
-
-                    retryCountdownValue--;
-
-                    jobStatus.textContent =
-                      `${
-                        retryMessage ||
-                        "Gemini quota limit reached. Retrying automatically..."
-                      } Waiting ${retryCountdownValue}s before retry...`;
-
-                  }
-
-                  if (
-                    retryCountdownValue <= 0
-                  ) {
-
-                    clearInterval(
-                      retryCountdownTimer
-                    );
-
-                    retryCountdownTimer =
-                      null;
-
-                  }
-
-                },
-                1000
-              );
+            jobStatus.textContent =
+              `${
+                retryMessage ||
+                "Gemini quota limit reached. Retrying automatically..."
+              } Waiting ${retryCountdownValue}s before retry...`;
 
           }
 
-          jobStatus.textContent =
-            `${
-              retryMessage ||
-              "Gemini quota limit reached. Retrying automatically..."
-            } Waiting ${retryCountdownValue}s before retry...`;
-
-        } else {
-
-          if (retryCountdownTimer) {
+          if (
+            retryCountdownValue <= 0
+          ) {
 
             clearInterval(
               retryCountdownTimer
             );
 
-             retryCountdownTimer =
+            retryCountdownTimer =
               null;
 
           }
 
-          retryCountdownValue =
-            0;
+        },
+        1000
+      );
 
-          retryCountdownJobId =
-            null;
+  }
 
-          jobStatus.textContent =
-            "Status: " +
-            status.job.status;
+  // Yahan retrySeconds ko dobara retryCountdownValue mein assign nahi karna
+  jobStatus.textContent =
+    `${
+      retryMessage ||
+      "Gemini quota limit reached. Retrying automatically..."
+    } Waiting ${retryCountdownValue}s before retry...`;
 
-        }
+} else {
+
+  if (retryCountdownTimer) {
+
+    clearInterval(
+      retryCountdownTimer
+    );
+
+    retryCountdownTimer =
+      null;
+
+  }
+
+  retryCountdownValue =
+    0;
+
+  retryCountdownJobId =
+    null;
+
+  jobStatus.textContent =
+    "Status: " +
+    status.job.status;
+
+}
 
           
         
