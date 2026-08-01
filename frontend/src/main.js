@@ -433,7 +433,7 @@ const subtitleCount =
 let retryCountdownTimer = null;
 let retryCountdownValue = 0;
 let retryCountdownJobId = null;
-let currentAttempt = 1;
+let currentAttempt = 0;
 const maxAttempts = 5;
 
 
