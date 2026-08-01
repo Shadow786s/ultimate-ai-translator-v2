@@ -40,6 +40,8 @@ async def update_job(
     retry_seconds: int | None = None,
     retry_until: datetime | None = None,
     retry_message: str | None = None,
+    current_attempt: int | None = None,
+    max_attempts: int | None = None,
     clear_retry: bool = False,
 ):
     async with SessionLocal() as db:
@@ -78,6 +80,12 @@ async def update_job(
 
         if retry_message is not None:
             job.retry_message = retry_message
+
+        if current_attempt is not None:
+            job.current_attempt = current_attempt
+
+        if max_attempts is not None:
+            job.max_attempts = max_attempts
 
         if clear_retry:
             job.retry_seconds = 0
