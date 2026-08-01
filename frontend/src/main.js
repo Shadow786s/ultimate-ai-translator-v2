@@ -230,6 +230,17 @@ document.getElementById("root").innerHTML = `
 </p>
 
           <p
+  id="attemptText"
+  style="
+    margin:0 0 12px;
+    color:#f59e0b;
+    font-weight:bold;
+  "
+>
+  Attempt: 1 / 5
+</p>
+
+          <p
   id="etaText"
   style="
     margin:0 0 12px;
@@ -380,6 +391,11 @@ const currentBatchText =
     "currentBatchText"
   );
 
+const attemptText =
+  document.getElementById(
+    "attemptText"
+  );
+
 const etaText =
   document.getElementById("etaText");
 
@@ -417,6 +433,8 @@ const subtitleCount =
 let retryCountdownTimer = null;
 let retryCountdownValue = 0;
 let retryCountdownJobId = null;
+let currentAttempt = 0;
+const maxAttempts = 5;
 
 
 fileInput.addEventListener(
@@ -652,6 +670,11 @@ translateBtn.addEventListener(
       const startTime =
         Date.now();
 
+      currentAttempt = 0;
+
+      attemptText.textContent =
+        `Attempt: ${currentAttempt} / ${maxAttempts}`;
+      
 
       jobStatus.textContent =
         "Translation started";
@@ -703,11 +726,17 @@ if (retrySeconds > 0) {
     retryCountdownValue <= 0
   ) {
 
+    currentAttempt++;
+    }
+
     retryCountdownJobId =
       jobId;
 
     retryCountdownValue =
       retrySeconds;
+
+    attemptText.textContent =
+      `Attempt: ${currentAttempt} / ${maxAttempts}`;
 
     if (retryCountdownTimer) {
 
