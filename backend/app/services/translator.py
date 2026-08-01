@@ -9,8 +9,6 @@ from app.core.config import settings
 
 class TranslationService:
 
-    MAX_RETRIES = 5
-
     def __init__(self):
 
         if not settings.GEMINI_API_KEY:
@@ -38,7 +36,7 @@ class TranslationService:
         previous_context: list[str] | None = None,
         next_context: list[str] | None = None,
         on_retry: Callable[
-            [int, str],
+            [int, str, int, int],
             Awaitable[None],
         ] | None = None,
     ) -> list[str]:
@@ -242,6 +240,8 @@ the subtitles listed under "Subtitles to translate".
                     await on_retry(
                         retry_seconds,
                         retry_message,
+                        current_attempt,
+                        settings.MAX_RETRIES,
                     )
 
                 await asyncio.sleep(
