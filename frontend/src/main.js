@@ -867,39 +867,49 @@ if (
 }
 
     
+  // Normal ETA sirf tab dikhao jab retry countdown active nahi hai
+if (
+  retryCountdownValue <= 0 &&
+  retryCountdownTimer === null
+) {
+
   if (currentProgress > 0) {
 
-  const elapsedSeconds =
-    (Date.now() - startTime) / 1000;
+    const elapsedSeconds =
+      (Date.now() - startTime) / 1000;
 
-  const estimatedTotalSeconds =
-    elapsedSeconds / (currentProgress / 100);
+    const estimatedTotalSeconds =
+      elapsedSeconds /
+      (currentProgress / 100);
 
-  const remainingSeconds =
-    Math.max(
-      0,
-      estimatedTotalSeconds - elapsedSeconds
-    );
+    const remainingSeconds =
+      Math.max(
+        0,
+        estimatedTotalSeconds -
+        elapsedSeconds
+      );
 
-  const minutes =
-    Math.floor(
-      remainingSeconds / 60
-    );
+    const minutes =
+      Math.floor(
+        remainingSeconds / 60
+      );
 
-  const seconds =
-    Math.floor(
-      remainingSeconds % 60
-    );
+    const seconds =
+      Math.floor(
+        remainingSeconds % 60
+      );
 
-  etaText.textContent =
-    `ETA: ${minutes}m ${seconds}s`;
+    etaText.textContent =
+      `ETA: ${minutes}m ${seconds}s`;
 
-} else {
+  } else {
 
-  etaText.textContent =
-    "ETA: Calculating...";
+    etaText.textContent =
+      "ETA: Calculating...";
 
-        }
+  }
+
+}
 
         if (
           status.job.translation_preview
