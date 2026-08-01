@@ -433,7 +433,7 @@ const subtitleCount =
 let retryCountdownTimer = null;
 let retryCountdownValue = 0;
 let retryCountdownJobId = null;
-let currentAttempt = 0;
+let currentAttempt = 1;
 const maxAttempts = 5;
 
 
@@ -670,7 +670,7 @@ translateBtn.addEventListener(
       const startTime =
         Date.now();
 
-      currentAttempt = 0;
+      currentAttempt = 1;
 
       attemptText.textContent =
         `Attempt: ${currentAttempt} / ${maxAttempts}`;
@@ -726,7 +726,11 @@ if (retrySeconds > 0) {
     retryCountdownValue <= 0
   ) {
 
-    currentAttempt++;
+    if (currentAttempt < maxAttempts) {
+
+        currentAttempt++;
+
+    }
     
 
     retryCountdownJobId =
