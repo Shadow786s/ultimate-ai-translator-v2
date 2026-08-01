@@ -47,6 +47,7 @@ async def get_job_status(
             "completed_items": job.completed_items,
             "progress": job.progress,
             "retry_seconds": job.retry_seconds,
+            "retry_until": job.retry_until,
             "retry_message": job.retry_message,
             "current_attempt": job.current_attempt,
             "max_attempts": job.max_attempts,
