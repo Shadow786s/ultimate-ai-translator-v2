@@ -169,6 +169,8 @@ the subtitles listed under "Subtitles to translate".
         response = None
 
         for attempt in range(settings.MAX_RETRIES):
+            
+            current_attempt = attempt + 1
 
             async with httpx.AsyncClient(
                 timeout=120.0
