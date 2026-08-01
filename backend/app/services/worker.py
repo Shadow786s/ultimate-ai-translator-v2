@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import srt
@@ -37,6 +38,7 @@ async def update_job(
     error_message: str | None = None,
     translation_preview: str | None = None,
     retry_seconds: int | None = None,
+    retry_until: datetime | None = None,
     retry_message: str | None = None,
     clear_retry: bool = False,
 ):
@@ -71,11 +73,15 @@ async def update_job(
         if retry_seconds is not None:
             job.retry_seconds = retry_seconds
 
+        if retry_until is not None:
+            job.retry_until = retry_until
+
         if retry_message is not None:
             job.retry_message = retry_message
 
         if clear_retry:
             job.retry_seconds = 0
+            job.retry_until = None
             job.retry_message = None
         
         await db.commit()
@@ -176,10 +182,19 @@ async def process_translation_job(
             retry_seconds: int,
             retry_message: str,
         ):
+
+            retry_until = (
+                datetime.utcnow()
+                + timedelta(
+                    seconds=retry_seconds
+                )
+            )
+            
             await update_job(
                 job_id,
                 status="retrying",
                 retry_seconds=retry_seconds,
+                retry_until=retry_until,
                 retry_message=retry_message,
             )
 
