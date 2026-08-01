@@ -116,6 +116,13 @@ async def fix_retry_columns():
             """)
         )
 
+        await connection.execute(
+            text("""
+                ALTER TABLE jobs
+                ADD COLUMN IF NOT EXISTS retry_until TIMESTAMP NULL;
+            """)
+        )
+
     return {
         "success": True,
         "message": "Retry columns added successfully."
