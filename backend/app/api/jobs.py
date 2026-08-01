@@ -49,8 +49,6 @@ async def get_job_status(
             "retry_seconds": job.retry_seconds,
             "retry_until": job.retry_until,
             "retry_message": job.retry_message,
-            "current_attempt": job.current_attempt,
-            "max_attempts": job.max_attempts,
             "translation_preview": job.translation_preview,
             "original_filename": job.original_filename,
             "error_message": job.error_message,
