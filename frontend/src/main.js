@@ -694,11 +694,54 @@ translateBtn.addEventListener(
 
         if (retrySeconds > 0) {
 
+          if (retryCountdownTimer) {
+            clearInterval(retryCountdownTimer);
+          }
+
+          let remainingSeconds =
+            retrySeconds;
+
           jobStatus.textContent =
-            retryMessage ||
-            "Gemini quota limit reached. Retrying automatically...";
+            `${retryMessage || "Gemini quota exceeded. Automatically retrying..."} ${remainingSeconds}s`;
+
+          retryCountdownTimer =
+            setInterval(() => {
+
+              remainingSeconds--;
+
+              if (remainingSeconds > 0) {
+
+                jobStatus.textContent =
+                  `${retryMessage || "Gemini quota exceeded. Automatically retrying..."} ${remainingSeconds}s`;
+
+              } else {
+
+                clearInterval(
+                  retryCountdownTimer
+                );
+
+                retryCountdownTimer =
+                  null;
+
+                jobStatus.textContent =
+                  "Retrying now...";
+
+              }
+
+            }, 1000);
 
         } else {
+
+          if (retryCountdownTimer) {
+
+            clearInterval(
+              retryCountdownTimer
+            );
+
+            retryCountdownTimer =
+              null;
+
+          }
 
           jobStatus.textContent =
             "Status: " +
