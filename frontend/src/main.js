@@ -803,10 +803,18 @@ if (retrySeconds > 0) {
 
           
         
-        progressText.textContent =
-          "Progress: " +
-          currentProgress +
-          "%";
+        // Normal progress sirf retry countdown ke bahar update karo
+if (
+  retryCountdownValue <= 0 &&
+  retryCountdownTimer === null
+) {
+
+  progressText.textContent =
+    "Progress: " +
+    currentProgress +
+    "%";
+
+}
 
 
 const batchCompletedItems =
