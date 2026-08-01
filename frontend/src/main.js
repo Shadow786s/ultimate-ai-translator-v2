@@ -229,17 +229,7 @@ document.getElementById("root").innerHTML = `
   Current Batch: 0 / 0
 </p>
 
-          <p
-  id="attemptText"
-  style="
-    margin:0 0 12px;
-    color:#f59e0b;
-    font-weight:bold;
-  "
->
-  Attempt: 1 / 5
-</p>
-
+          
           <p
   id="etaText"
   style="
@@ -389,11 +379,6 @@ const progressText =
 const currentBatchText =
   document.getElementById(
     "currentBatchText"
-  );
-
-const attemptText =
-  document.getElementById(
-    "attemptText"
   );
 
 const etaText =
@@ -693,14 +678,6 @@ translateBtn.addEventListener(
             jobId
           );
 
-        const backendAttempt =
-          Number(status.job.current_attempt || 1);
-
-        const backendMaxAttempts =
-          Number(status.job.max_attempts || 5);
-
-        attemptText.textContent =
-          `Attempt: ${backendAttempt} / ${backendMaxAttempts}`;
 
         const currentProgress =
           Number(
