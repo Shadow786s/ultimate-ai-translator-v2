@@ -53,62 +53,6 @@ class Job(Base):
         nullable=False,
     )
 
-    current_attempt: Mapped[int] = mapped_column(
-        Integer,
-        default=1,
-        nullable=False,
-    )
-
-    max_attempts: Mapped[int] = mapped_column(
-        Integer,
-        default=5,
-        nullable=False,
-    )
-
-    retry_seconds: Mapped[int] = mapped_column(
-        Integer,
-        default=0,
-        nullable=False,
-    )
-
-    retry_until: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True,
-    )
-
-    retry_message: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True,
-    )
-
-    original_filename: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True,
-    )
-
-    error_message: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    translation_preview: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow,
-        nullable=False,
-    )
-
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
-        nullable=False,
-    )
-
     retry_seconds: Mapped[int] = mapped_column(
         Integer,
         default=0,
