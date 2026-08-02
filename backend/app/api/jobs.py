@@ -1,11 +1,21 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+)
+
 from fastapi.responses import FileResponse
+
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+)
 
 from app.database.session import get_db
+
 from app.models.job import Job
 
 
@@ -15,7 +25,14 @@ router = APIRouter(
 )
 
 
-@router.get("/jobs/{job_id}")
+OUTPUT_DIR = Path(
+    "/tmp/ultimate-ai-translator/outputs"
+)
+
+
+@router.get(
+    "/jobs/{job_id}"
+)
 async def get_job_status(
     job_id: str,
     db: AsyncSession = Depends(get_db),
@@ -29,6 +46,7 @@ async def get_job_status(
 
     job = result.scalar_one_or_none()
 
+
     if job is None:
 
         raise HTTPException(
@@ -36,28 +54,61 @@ async def get_job_status(
             detail="Job not found.",
         )
 
+
     return {
         "success": True,
+
         "job": {
+
             "id": job.id,
+
             "status": job.status,
-            "source_language": job.source_language,
-            "target_language": job.target_language,
-            "total_items": job.total_items,
-            "completed_items": job.completed_items,
-            "progress": job.progress,
-            "retry_seconds": job.retry_seconds,
-            "retry_until": job.retry_until,
-            "retry_message": job.retry_message,
-            "translation_preview": job.translation_preview,
-            "original_filename": job.original_filename,
-            "error_message": job.error_message,
-            "created_at": job.created_at,
-            "updated_at": job.updated_at,
+
+            "source_language":
+                job.source_language,
+
+            "target_language":
+                job.target_language,
+
+            "total_items":
+                job.total_items,
+
+            "completed_items":
+                job.completed_items,
+
+            "progress":
+                job.progress,
+
+            "retry_seconds":
+                job.retry_seconds,
+
+            "retry_until":
+                job.retry_until,
+
+            "retry_message":
+                job.retry_message,
+
+            "translation_preview":
+                job.translation_preview,
+
+            "original_filename":
+                job.original_filename,
+
+            "error_message":
+                job.error_message,
+
+            "created_at":
+                job.created_at,
+
+            "updated_at":
+                job.updated_at,
         },
     }
 
-@router.post("/jobs/{job_id}/cancel")
+
+@router.post(
+    "/jobs/{job_id}/cancel"
+)
 async def cancel_translation_job(
     job_id: str,
     db: AsyncSession = Depends(get_db),
@@ -71,12 +122,14 @@ async def cancel_translation_job(
 
     job = result.scalar_one_or_none()
 
+
     if job is None:
 
         raise HTTPException(
             status_code=404,
             detail="Job not found.",
         )
+
 
     if job.status == "completed":
 
@@ -87,6 +140,7 @@ async def cancel_translation_job(
             ),
         )
 
+
     if job.status == "failed":
 
         raise HTTPException(
@@ -96,35 +150,47 @@ async def cancel_translation_job(
             ),
         )
 
+
     if job.status == "cancelled":
 
         return {
             "success": True,
-            "message": (
-                "Translation job is already cancelled."
-            ),
-            "job_id": job.id,
-            "status": job.status,
+            "message":
+                "Translation job is already cancelled.",
+            "job_id":
+                job.id,
+            "status":
+                job.status,
         }
+
 
     job.status = "cancelled"
 
+    job.retry_seconds = 0
+    job.retry_until = None
+    job.retry_message = None
+
+
     await db.commit()
+
 
     return {
         "success": True,
-        "message": (
-            "Translation cancellation requested."
-        ),
-        "job_id": job.id,
-        "status": job.status,
+
+        "message":
+            "Translation cancellation requested.",
+
+        "job_id":
+            job.id,
+
+        "status":
+            job.status,
     }
 
-OUTPUT_DIR = Path(
-    "/tmp/ultimate-ai-translator/outputs"
-)
 
-@router.post("/jobs/{job_id}/pause")
+@router.post(
+    "/jobs/{job_id}/pause"
+)
 async def pause_translation_job(
     job_id: str,
     db: AsyncSession = Depends(get_db),
@@ -138,51 +204,84 @@ async def pause_translation_job(
 
     job = result.scalar_one_or_none()
 
+
     if job is None:
+
         raise HTTPException(
             status_code=404,
             detail="Job not found.",
         )
 
+
     if job.status == "completed":
+
         raise HTTPException(
             status_code=400,
-            detail="Translation job is already completed.",
+            detail=(
+                "Translation job is already completed."
+            ),
         )
+
 
     if job.status == "failed":
+
         raise HTTPException(
             status_code=400,
-            detail="Translation job has already failed.",
+            detail=(
+                "Translation job has already failed."
+            ),
         )
+
 
     if job.status == "cancelled":
+
         raise HTTPException(
             status_code=400,
-            detail="Translation job is already cancelled.",
+            detail=(
+                "Translation job is already cancelled."
+            ),
         )
 
+
     if job.status == "paused":
+
         return {
             "success": True,
-            "message": "Translation job is already paused.",
-            "job_id": job.id,
-            "status": job.status,
+
+            "message":
+                "Translation job is already paused.",
+
+            "job_id":
+                job.id,
+
+            "status":
+                job.status,
         }
+
 
     job.status = "paused"
 
+
     await db.commit()
+
 
     return {
         "success": True,
-        "message": "Translation job paused.",
-        "job_id": job.id,
-        "status": job.status,
+
+        "message":
+            "Translation job paused.",
+
+        "job_id":
+            job.id,
+
+        "status":
+            job.status,
     }
 
 
-@router.post("/jobs/{job_id}/resume")
+@router.post(
+    "/jobs/{job_id}/resume"
+)
 async def resume_translation_job(
     job_id: str,
     db: AsyncSession = Depends(get_db),
@@ -196,48 +295,78 @@ async def resume_translation_job(
 
     job = result.scalar_one_or_none()
 
+
     if job is None:
+
         raise HTTPException(
             status_code=404,
             detail="Job not found.",
         )
 
+
     if job.status == "completed":
+
         raise HTTPException(
             status_code=400,
-            detail="Translation job is already completed.",
+            detail=(
+                "Translation job is already completed."
+            ),
         )
+
 
     if job.status == "failed":
+
         raise HTTPException(
             status_code=400,
-            detail="Translation job has already failed.",
+            detail=(
+                "Translation job has already failed."
+            ),
         )
+
 
     if job.status == "cancelled":
+
         raise HTTPException(
             status_code=400,
-            detail="Translation job is already cancelled.",
+            detail=(
+                "Translation job is already cancelled."
+            ),
         )
 
+
     if job.status != "paused":
+
         raise HTTPException(
             status_code=400,
-            detail="Translation job is not paused.",
+            detail=(
+                "Translation job is not paused."
+            ),
         )
+
 
     job.status = "processing"
 
+
     await db.commit()
+
 
     return {
         "success": True,
-        "message": "Translation job resumed.",
-        "job_id": job.id,
-        "status": job.status,
+
+        "message":
+            "Translation job resumed.",
+
+        "job_id":
+            job.id,
+
+        "status":
+            job.status,
     }
 
-@router.get("/jobs/{job_id}/download")
+
+@router.get(
+    "/jobs/{job_id}/download"
+)
 async def download_translated_srt(
     job_id: str,
     db: AsyncSession = Depends(get_db),
@@ -251,12 +380,14 @@ async def download_translated_srt(
 
     job = result.scalar_one_or_none()
 
+
     if job is None:
 
         raise HTTPException(
             status_code=404,
             detail="Job not found.",
         )
+
 
     if job.status != "completed":
 
@@ -267,10 +398,12 @@ async def download_translated_srt(
             ),
         )
 
+
     output_file = (
         OUTPUT_DIR
         / f"{job_id}.srt"
     )
+
 
     if not output_file.exists():
 
@@ -281,10 +414,15 @@ async def download_translated_srt(
             ),
         )
 
+
     return FileResponse(
         path=output_file,
-        media_type="application/x-subrip",
+
+        media_type=
+            "application/x-subrip",
+
         filename=(
-            f"translated_{job.original_filename}"
+            f"translated_"
+            f"{job.original_filename}"
         ),
     )
