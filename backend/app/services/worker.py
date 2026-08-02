@@ -557,6 +557,8 @@ async def process_translation_job(
 
                 )
 
+            ).replace(
+                tzinfo=None
             )
 
 
