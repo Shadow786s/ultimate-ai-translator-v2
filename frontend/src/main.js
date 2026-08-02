@@ -4,9 +4,8 @@ import {
   getDownloadUrl,
   cancelJob,
   pauseJob,
-  resumeJob,
+  resumeJob
 } from "./api.js";
-
 
 document.getElementById("root").innerHTML = `
   <div style="
@@ -40,7 +39,6 @@ document.getElementById("root").innerHTML = `
         Translate your SRT subtitles into natural Indian Hinglish
       </p>
 
-
       <div style="
         background:rgba(30,41,59,0.9);
         border:1px solid #334155;
@@ -57,7 +55,6 @@ document.getElementById("root").innerHTML = `
           Subtitle Translation
         </h2>
 
-
         <label style="
           display:block;
           margin-bottom:10px;
@@ -65,7 +62,6 @@ document.getElementById("root").innerHTML = `
         ">
           Select SRT File
         </label>
-
 
         <input
           id="fileInput"
@@ -83,18 +79,16 @@ document.getElementById("root").innerHTML = `
           "
         />
 
-
         <p
           id="fileName"
           style="
-            margin:12px 0 8px;
+            margin:12px 0;
             color:#94a3b8;
             word-break:break-word;
           "
         >
           No file selected
         </p>
-
 
         <p
           id="fileSize"
@@ -106,7 +100,6 @@ document.getElementById("root").innerHTML = `
           File size: -
         </p>
 
-
         <p
           id="subtitleCount"
           style="
@@ -117,7 +110,6 @@ document.getElementById("root").innerHTML = `
           Subtitle lines: -
         </p>
 
-
         <label style="
           display:block;
           margin-bottom:10px;
@@ -125,7 +117,6 @@ document.getElementById("root").innerHTML = `
         ">
           Target Language
         </label>
-
 
         <div style="
           background:#0f172a;
@@ -139,7 +130,6 @@ document.getElementById("root").innerHTML = `
           Indian Hinglish
         </div>
 
-
         <label
           for="batchSize"
           style="
@@ -151,7 +141,6 @@ document.getElementById("root").innerHTML = `
           Batch Size
         </label>
 
-
         <p style="
           margin:0 0 10px;
           color:#94a3b8;
@@ -159,7 +148,6 @@ document.getElementById("root").innerHTML = `
         ">
           Choose a value between 1 and 500.
         </p>
-
 
         <input
           id="batchSize"
@@ -179,7 +167,6 @@ document.getElementById("root").innerHTML = `
           "
         />
 
-
         <button
           id="translateBtn"
           style="
@@ -198,7 +185,6 @@ document.getElementById("root").innerHTML = `
           Start Translation
         </button>
 
-
         <div
           id="statusBox"
           style="
@@ -211,7 +197,6 @@ document.getElementById("root").innerHTML = `
           "
         >
 
-
           <p
             id="jobStatus"
             style="
@@ -221,7 +206,6 @@ document.getElementById("root").innerHTML = `
           >
             Starting...
           </p>
-
 
           <p
             id="progressText"
@@ -233,7 +217,6 @@ document.getElementById("root").innerHTML = `
             Progress: 0%
           </p>
 
-
           <p
             id="currentBatchText"
             style="
@@ -243,7 +226,6 @@ document.getElementById("root").innerHTML = `
           >
             Current Batch: 0 / 0
           </p>
-
 
           <p
             id="etaText"
@@ -255,7 +237,6 @@ document.getElementById("root").innerHTML = `
             ETA: Calculating...
           </p>
 
-
           <p
             id="speedText"
             style="
@@ -265,7 +246,6 @@ document.getElementById("root").innerHTML = `
           >
             Speed: Calculating...
           </p>
-
 
           <div
             id="translationPreviewBox"
@@ -288,7 +268,6 @@ document.getElementById("root").innerHTML = `
               Live Hinglish Translation
             </h3>
 
-
             <pre
               id="translationPreview"
               style="
@@ -302,15 +281,16 @@ document.getElementById("root").innerHTML = `
 
           </div>
 
-
-          <div style="
-            width:100%;
-            height:24px;
-            background:#1e293b;
-            border-radius:20px;
-            overflow:hidden;
-            position:relative;
-          ">
+          <div
+            style="
+              width:100%;
+              height:24px;
+              background:#1e293b;
+              border-radius:20px;
+              overflow:hidden;
+              position:relative;
+            "
+          >
 
             <div
               id="progressBar"
@@ -324,7 +304,6 @@ document.getElementById("root").innerHTML = `
                 display:flex;
                 align-items:center;
                 justify-content:center;
-                min-width:0;
               "
             >
 
@@ -348,7 +327,6 @@ document.getElementById("root").innerHTML = `
 
           </div>
 
-
           <button
             id="pauseBtn"
             style="
@@ -367,7 +345,6 @@ document.getElementById("root").innerHTML = `
           >
             Pause Translation
           </button>
-
 
           <button
             id="cancelBtn"
@@ -388,14 +365,7 @@ document.getElementById("root").innerHTML = `
             Cancel Translation
           </button>
 
-
-          <div
-            id="downloadContainer"
-            style="
-              margin-top:20px;
-            "
-          ></div>
-
+          <div id="downloadContainer"></div>
 
         </div>
 
@@ -423,6 +393,9 @@ const fileSize =
 const subtitleCount =
   document.getElementById("subtitleCount");
 
+const batchSizeInput =
+  document.getElementById("batchSize");
+
 const translateBtn =
   document.getElementById("translateBtn");
 
@@ -436,9 +409,7 @@ const progressText =
   document.getElementById("progressText");
 
 const currentBatchText =
-  document.getElementById(
-    "currentBatchText"
-  );
+  document.getElementById("currentBatchText");
 
 const etaText =
   document.getElementById("etaText");
@@ -450,12 +421,7 @@ const progressBar =
   document.getElementById("progressBar");
 
 const progressPercent =
-  document.getElementById(
-    "progressPercent"
-  );
-
-const batchSizeInput =
-  document.getElementById("batchSize");
+  document.getElementById("progressPercent");
 
 const pauseBtn =
   document.getElementById("pauseBtn");
@@ -480,14 +446,42 @@ const downloadContainer =
 
 
 /* =========================================================
-   STATE
+   LOCAL STORAGE KEYS
 ========================================================= */
 
-let currentJobId = null;
+const STORAGE_KEYS = {
+  JOB_ID:
+    "ultimate_ai_translator_active_job_id",
+
+  BATCH_SIZE:
+    "ultimate_ai_translator_batch_size",
+
+  FILE_NAME:
+    "ultimate_ai_translator_file_name",
+
+  FILE_SIZE:
+    "ultimate_ai_translator_file_size",
+
+  SUBTITLE_COUNT:
+    "ultimate_ai_translator_subtitle_count",
+
+  START_TIME:
+    "ultimate_ai_translator_start_time",
+};
+
+
+/* =========================================================
+   RUNTIME STATE
+========================================================= */
+
+let activeJobId =
+  localStorage.getItem(
+    STORAGE_KEYS.JOB_ID
+  );
 
 let isPaused = false;
 
-let isCancelling = false;
+let pollTimer = null;
 
 let retryCountdownTimer = null;
 
@@ -495,12 +489,117 @@ let retryCountdownValue = 0;
 
 let retryCountdownJobId = null;
 
+let translationStartTime =
+  Number(
+    localStorage.getItem(
+      STORAGE_KEYS.START_TIME
+    ) || 0
+  );
+
 
 /* =========================================================
-   HELPER FUNCTIONS
+   RESTORE SAVED UI DATA
 ========================================================= */
 
-function clearRetryCountdown() {
+function restoreSavedUI() {
+
+  const savedBatchSize =
+    localStorage.getItem(
+      STORAGE_KEYS.BATCH_SIZE
+    );
+
+  if (savedBatchSize) {
+
+    batchSizeInput.value =
+      savedBatchSize;
+
+  }
+
+
+  const savedFileName =
+    localStorage.getItem(
+      STORAGE_KEYS.FILE_NAME
+    );
+
+  if (savedFileName) {
+
+    fileName.textContent =
+      "File: " +
+      savedFileName;
+
+  }
+
+
+  const savedFileSize =
+    localStorage.getItem(
+      STORAGE_KEYS.FILE_SIZE
+    );
+
+  if (savedFileSize) {
+
+    fileSize.textContent =
+      "File size: " +
+      savedFileSize;
+
+  }
+
+
+  const savedSubtitleCount =
+    localStorage.getItem(
+      STORAGE_KEYS.SUBTITLE_COUNT
+    );
+
+  if (savedSubtitleCount) {
+
+    subtitleCount.textContent =
+      "Subtitle lines: " +
+      savedSubtitleCount;
+
+  }
+
+}
+
+
+/* =========================================================
+   CLEAR ACTIVE JOB STORAGE
+========================================================= */
+
+function clearActiveJobStorage() {
+
+  localStorage.removeItem(
+    STORAGE_KEYS.JOB_ID
+  );
+
+  localStorage.removeItem(
+    STORAGE_KEYS.FILE_NAME
+  );
+
+  localStorage.removeItem(
+    STORAGE_KEYS.FILE_SIZE
+  );
+
+  localStorage.removeItem(
+    STORAGE_KEYS.SUBTITLE_COUNT
+  );
+
+  localStorage.removeItem(
+    STORAGE_KEYS.START_TIME
+  );
+
+  activeJobId =
+    null;
+
+  translationStartTime =
+    0;
+
+}
+
+
+/* =========================================================
+   RESET RETRY STATE
+========================================================= */
+
+function clearRetryState() {
 
   if (retryCountdownTimer) {
 
@@ -522,215 +621,41 @@ function clearRetryCountdown() {
 }
 
 
-function resetDownloadButton() {
+/* =========================================================
+   FORMAT FILE SIZE
+========================================================= */
 
-  downloadContainer.innerHTML =
-    "";
-
-}
-
-
-function showDownloadButton(
-  jobId
+function formatFileSize(
+  bytes
 ) {
 
-  resetDownloadButton();
-
-  const downloadButton =
-    document.createElement(
-      "button"
-    );
-
-  downloadButton.textContent =
-    "Download Translated SRT";
-
-  downloadButton.style.width =
-    "100%";
-
-  downloadButton.style.padding =
-    "14px";
-
-  downloadButton.style.border =
-    "none";
-
-  downloadButton.style.borderRadius =
-    "10px";
-
-  downloadButton.style.background =
-    "#16a34a";
-
-  downloadButton.style.color =
-    "white";
-
-  downloadButton.style.fontSize =
-    "16px";
-
-  downloadButton.style.fontWeight =
-    "bold";
-
-  downloadButton.style.cursor =
-    "pointer";
-
-  downloadButton.onclick =
-    () => {
-
-      const downloadUrl =
-        getDownloadUrl(
-          jobId
-        );
-
-      window.location.href =
-        downloadUrl;
-
-    };
-
-  downloadContainer.appendChild(
-    downloadButton
-  );
-
-}
-
-
-function resetProgressUI() {
-
-  progressBar.style.width =
-    "0%";
-
-  progressPercent.textContent =
-    "0%";
-
-  progressText.textContent =
-    "Progress: 0%";
-
-  currentBatchText.textContent =
-    "Current Batch: 0 / 0";
-
-  etaText.textContent =
-    "ETA: Calculating...";
-
-  speedText.textContent =
-    "Speed: Calculating...";
-
-  translationPreviewBox.style.display =
-    "none";
-
-  translationPreview.textContent =
-    "";
-
-}
-
-
-function setPauseButtonPausedState() {
-
-  pauseBtn.textContent =
-    "Resume Translation";
-
-  pauseBtn.style.background =
-    "#16a34a";
-
-}
-
-
-function setPauseButtonRunningState() {
-
-  pauseBtn.textContent =
-    "Pause Translation";
-
-  pauseBtn.style.background =
-    "#f59e0b";
-
-}
-
-
-function setPauseButtonDisabledState(
-  text
-) {
-
-  pauseBtn.disabled =
-    true;
-
-  pauseBtn.textContent =
-    text;
-
-}
-
-
-function setCancelButtonCancelledState() {
-
-  cancelBtn.textContent =
-    "Translation Cancelled";
-
-  cancelBtn.disabled =
-    true;
-
-  cancelBtn.style.background =
-    "#64748b";
-
-}
-
-
-function calculateETA(
-  progress,
-  startTime
-) {
+  const sizeInKB =
+    bytes / 1024;
 
   if (
-    progress <= 0
+    sizeInKB < 1024
   ) {
 
-    return "ETA: Calculating...";
+    return (
+      sizeInKB.toFixed(2) +
+      " KB"
+    );
 
   }
 
-  const elapsedSeconds =
-    (
-      Date.now() -
-      startTime
-    ) / 1000;
-
-  if (
-    elapsedSeconds <= 0
-  ) {
-
-    return "ETA: Calculating...";
-
-  }
-
-  const estimatedTotalSeconds =
-    elapsedSeconds /
-    (
-      progress /
-      100
-    );
-
-  const remainingSeconds =
-    Math.max(
-      0,
-      estimatedTotalSeconds -
-      elapsedSeconds
-    );
-
-  const minutes =
-    Math.floor(
-      remainingSeconds /
-      60
-    );
-
-  const seconds =
-    Math.floor(
-      remainingSeconds %
-      60
-    );
+  const sizeInMB =
+    sizeInKB / 1024;
 
   return (
-    `ETA: ${minutes}m ${seconds}s`
+    sizeInMB.toFixed(2) +
+    " MB"
   );
 
 }
 
 
 /* =========================================================
-   FILE SELECT
+   FILE SELECTION
 ========================================================= */
 
 fileInput.addEventListener(
@@ -764,32 +689,27 @@ fileInput.addEventListener(
       file.name;
 
 
-    const sizeInKB =
-      file.size /
-      1024;
+    const formattedSize =
+      formatFileSize(
+        file.size
+      );
 
 
-    if (
-      sizeInKB < 1024
-    ) {
+    fileSize.textContent =
+      "File size: " +
+      formattedSize;
 
-      fileSize.textContent =
-        "File size: " +
-        sizeInKB.toFixed(2) +
-        " KB";
 
-    } else {
+    localStorage.setItem(
+      STORAGE_KEYS.FILE_NAME,
+      file.name
+    );
 
-      const sizeInMB =
-        sizeInKB /
-        1024;
 
-      fileSize.textContent =
-        "File size: " +
-        sizeInMB.toFixed(2) +
-        " MB";
-
-    }
+    localStorage.setItem(
+      STORAGE_KEYS.FILE_SIZE,
+      formattedSize
+    );
 
 
     try {
@@ -814,6 +734,15 @@ fileInput.addEventListener(
         "Subtitle lines: " +
         subtitleBlocks.length;
 
+
+      localStorage.setItem(
+        STORAGE_KEYS.SUBTITLE_COUNT,
+        String(
+          subtitleBlocks.length
+        )
+      );
+
+
     } catch (error) {
 
       subtitleCount.textContent =
@@ -826,154 +755,916 @@ fileInput.addEventListener(
 
 
 /* =========================================================
-   PAUSE / RESUME
+   SAVE BATCH SIZE
 ========================================================= */
 
-pauseBtn.addEventListener(
-  "click",
-  async () => {
+batchSizeInput.addEventListener(
+  "change",
+  () => {
 
-    if (
-      !currentJobId
-    ) {
-
-      return;
-
-    }
-
-
-    if (
-      isCancelling
-    ) {
-
-      return;
-
-    }
-
-
-    try {
-
-      pauseBtn.disabled =
-        true;
-
-
-      if (
-        !isPaused
-      ) {
-
-        /* =========================
-           PAUSE
-        ========================= */
-
-        pauseBtn.textContent =
-          "Pausing...";
-
-
-        const result =
-          await pauseJob(
-            currentJobId
-          );
-
-
-        if (
-          result.status ===
-          "paused"
-        ) {
-
-          isPaused =
-            true;
-
-          setPauseButtonPausedState();
-
-          jobStatus.textContent =
-            "Translation Paused";
-
-          etaText.textContent =
-            "ETA: Paused";
-
-        } else {
-
-          throw new Error(
-            result.message ||
-            "Unable to pause translation."
-          );
-
-        }
-
-      } else {
-
-        /* =========================
-           RESUME
-        ========================= */
-
-        pauseBtn.textContent =
-          "Resuming...";
-
-
-        const result =
-          await resumeJob(
-            currentJobId
-          );
-
-
-        if (
-          result.status ===
-          "processing"
-        ) {
-
-          isPaused =
-            false;
-
-          setPauseButtonRunningState();
-
-          jobStatus.textContent =
-            "Translation Resumed";
-
-          etaText.textContent =
-            "ETA: Calculating...";
-
-        } else {
-
-          throw new Error(
-            result.message ||
-            "Unable to resume translation."
-          );
-
-        }
-
-      }
-
-    } catch (error) {
-
-      alert(
-        error.message
-      );
-
-      if (
-        isPaused
-      ) {
-
-        setPauseButtonPausedState();
-
-      } else {
-
-        setPauseButtonRunningState();
-
-      }
-
-    } finally {
-
-      pauseBtn.disabled =
-        false;
-
-    }
+    localStorage.setItem(
+      STORAGE_KEYS.BATCH_SIZE,
+      batchSizeInput.value
+    );
 
   }
 );
 
 
 /* =========================================================
-   START TRANSLATION
+   DISABLE / ENABLE START BUTTON
+========================================================= */
+
+function setTranslationButtonBusy(
+  busy
+) {
+
+  translateBtn.disabled =
+    busy;
+
+  translateBtn.style.opacity =
+    busy
+      ? "0.6"
+      : "1";
+
+  translateBtn.style.cursor =
+    busy
+      ? "not-allowed"
+      : "pointer";
+
+  translateBtn.textContent =
+    busy
+      ? "Translation Running..."
+      : "Start Translation";
+
+}
+
+
+/* =========================================================
+   SHOW DOWNLOAD BUTTON
+========================================================= */
+
+function showDownloadButton(
+  jobId,
+  originalFilename
+) {
+
+  downloadContainer.innerHTML =
+    "";
+
+
+  const downloadButton =
+    document.createElement(
+      "button"
+    );
+
+
+  downloadButton.textContent =
+    "Download Translated SRT";
+
+
+  downloadButton.style.width =
+    "100%";
+
+  downloadButton.style.marginTop =
+    "20px";
+
+  downloadButton.style.padding =
+    "14px";
+
+  downloadButton.style.border =
+    "none";
+
+  downloadButton.style.borderRadius =
+    "10px";
+
+  downloadButton.style.background =
+    "#16a34a";
+
+  downloadButton.style.color =
+    "white";
+
+  downloadButton.style.fontSize =
+    "16px";
+
+  downloadButton.style.fontWeight =
+    "bold";
+
+  downloadButton.style.cursor =
+    "pointer";
+
+
+  downloadButton.onclick =
+    () => {
+
+      window.location.href =
+        getDownloadUrl(
+          jobId
+        );
+
+    };
+
+
+  downloadContainer.appendChild(
+    downloadButton
+  );
+
+}
+
+
+/* =========================================================
+   SHOW / HIDE CONTROL BUTTONS
+========================================================= */
+
+function hideJobControls() {
+
+  pauseBtn.style.display =
+    "none";
+
+  cancelBtn.style.display =
+    "none";
+
+}
+
+
+function showJobControls() {
+
+  pauseBtn.style.display =
+    "block";
+
+  cancelBtn.style.display =
+    "block";
+
+}
+
+
+/* =========================================================
+   RETRY COUNTDOWN
+========================================================= */
+
+function startRetryCountdown(
+  jobId,
+  retrySeconds,
+  retryMessage
+) {
+
+  if (
+    retryCountdownJobId === jobId &&
+    retryCountdownValue > 0
+  ) {
+
+    return;
+
+  }
+
+
+  clearRetryState();
+
+
+  retryCountdownJobId =
+    jobId;
+
+  retryCountdownValue =
+    Math.max(
+      0,
+      Number(
+        retrySeconds
+      )
+    );
+
+
+  const updateRetryUI =
+    () => {
+
+      jobStatus.textContent =
+        `⚠️ ${
+          retryMessage ||
+          "Gemini quota limit reached."
+        }`;
+
+
+      progressText.textContent =
+        `🔄 Retrying automatically... ${
+          retryCountdownValue
+        }s`;
+
+
+      etaText.textContent =
+        "ETA: Waiting for retry...";
+
+    };
+
+
+  updateRetryUI();
+
+
+  retryCountdownTimer =
+    setInterval(
+      () => {
+
+        if (
+          retryCountdownValue > 0
+        ) {
+
+          retryCountdownValue--;
+
+          updateRetryUI();
+
+        }
+
+
+        if (
+          retryCountdownValue <= 0
+        ) {
+
+          clearRetryState();
+
+        }
+
+      },
+      1000
+    );
+
+}
+
+
+/* =========================================================
+   RESTORE JOB UI FROM BACKEND
+========================================================= */
+
+function updateJobUI(
+  job,
+  batchSize
+) {
+
+  const currentProgress =
+    Number(
+      job.progress || 0
+    );
+
+
+  const completedItems =
+    Number(
+      job.completed_items || 0
+    );
+
+
+  const totalItems =
+    Number(
+      job.total_items || 0
+    );
+
+
+  const totalBatches =
+    totalItems > 0
+      ? Math.ceil(
+          totalItems /
+          batchSize
+        )
+      : 0;
+
+
+  const currentBatch =
+    completedItems > 0
+      ? Math.ceil(
+          completedItems /
+          batchSize
+        )
+      : 0;
+
+
+  jobStatus.textContent =
+    "Status: " +
+    job.status;
+
+
+  currentBatchText.textContent =
+    "Current Batch: " +
+    currentBatch +
+    " / " +
+    totalBatches;
+
+
+  progressBar.style.width =
+    currentProgress +
+    "%";
+
+
+  progressPercent.textContent =
+    currentProgress +
+    "%";
+
+
+  if (
+    job.translation_preview
+  ) {
+
+    translationPreviewBox.style.display =
+      "block";
+
+    translationPreview.textContent =
+      job.translation_preview;
+
+  }
+
+
+  if (
+    job.status ===
+    "paused"
+  ) {
+
+    isPaused =
+      true;
+
+    pauseBtn.textContent =
+      "Resume Translation";
+
+    pauseBtn.style.background =
+      "#16a34a";
+
+    jobStatus.textContent =
+      "Translation Paused";
+
+  } else {
+
+    isPaused =
+      false;
+
+    pauseBtn.textContent =
+      "Pause Translation";
+
+    pauseBtn.style.background =
+      "#f59e0b";
+
+  }
+
+
+  if (
+    job.status ===
+    "retrying"
+  ) {
+
+    startRetryCountdown(
+      job.id,
+      Number(
+        job.retry_seconds || 0
+      ),
+      job.retry_message
+    );
+
+  } else {
+
+    clearRetryState();
+
+    progressText.textContent =
+      "Progress: " +
+      currentProgress +
+      "%";
+
+  }
+
+
+  if (
+    job.status ===
+    "completed"
+  ) {
+
+    progressBar.style.width =
+      "100%";
+
+    progressPercent.textContent =
+      "100%";
+
+    progressText.textContent =
+      "Progress: 100%";
+
+    jobStatus.textContent =
+      "Translation completed successfully!";
+
+    etaText.textContent =
+      "ETA: Completed";
+
+    speedText.textContent =
+      "Speed: Completed";
+
+
+    showDownloadButton(
+      job.id,
+      job.original_filename
+    );
+
+
+    hideJobControls();
+
+
+    setTranslationButtonBusy(
+      false
+    );
+
+
+    clearActiveJobStorage();
+
+
+    return "completed";
+
+  }
+
+
+  if (
+    job.status ===
+    "failed"
+  ) {
+
+    jobStatus.textContent =
+      "Translation failed";
+
+    progressText.textContent =
+      job.error_message ||
+      "Translation failed.";
+
+    etaText.textContent =
+      "ETA: Failed";
+
+    speedText.textContent =
+      "Speed: Failed";
+
+
+    hideJobControls();
+
+
+    setTranslationButtonBusy(
+      false
+    );
+
+
+    clearActiveJobStorage();
+
+
+    return "failed";
+
+  }
+
+
+  if (
+    job.status ===
+    "cancelled"
+  ) {
+
+    jobStatus.textContent =
+      "Translation Cancelled";
+
+    progressText.textContent =
+      "Translation Cancelled — Progress: " +
+      currentProgress +
+      "%";
+
+    etaText.textContent =
+      "ETA: Cancelled";
+
+    speedText.textContent =
+      "Speed: Cancelled";
+
+
+    hideJobControls();
+
+
+    setTranslationButtonBusy(
+      false
+    );
+
+
+    clearActiveJobStorage();
+
+
+    return "cancelled";
+
+  }
+
+
+  showJobControls();
+
+
+  return "active";
+
+}
+
+
+/* =========================================================
+   POLLING
+========================================================= */
+
+async function pollJob(
+  jobId,
+  batchSize
+) {
+
+  if (
+    pollTimer
+  ) {
+
+    clearTimeout(
+      pollTimer
+    );
+
+    pollTimer =
+      null;
+
+  }
+
+
+  try {
+
+    const status =
+      await getJobStatus(
+        jobId
+      );
+
+
+    const job =
+      status.job;
+
+
+    const result =
+      updateJobUI(
+        job,
+        batchSize
+      );
+
+
+    if (
+      result ===
+      "completed" ||
+      result ===
+      "failed" ||
+      result ===
+      "cancelled"
+    ) {
+
+      return;
+
+    }
+
+
+    const completedItems =
+      Number(
+        job.completed_items || 0
+      );
+
+
+    const currentProgress =
+      Number(
+        job.progress || 0
+      );
+
+
+    if (
+      translationStartTime <= 0
+    ) {
+
+      translationStartTime =
+        Date.now();
+
+      localStorage.setItem(
+        STORAGE_KEYS.START_TIME,
+        String(
+          translationStartTime
+        )
+      );
+
+    }
+
+
+    const elapsedSeconds =
+      (
+        Date.now() -
+        translationStartTime
+      ) / 1000;
+
+
+    if (
+      completedItems > 0 &&
+      elapsedSeconds > 0
+    ) {
+
+      const speed =
+        completedItems /
+        elapsedSeconds;
+
+
+      speedText.textContent =
+        "Speed: " +
+        speed.toFixed(2) +
+        " subtitles/sec";
+
+    } else {
+
+      speedText.textContent =
+        "Speed: Calculating...";
+
+    }
+
+
+    if (
+      job.status !==
+      "retrying" &&
+      currentProgress > 0
+    ) {
+
+      const estimatedTotalSeconds =
+        elapsedSeconds /
+        (
+          currentProgress /
+          100
+        );
+
+
+      const remainingSeconds =
+        Math.max(
+          0,
+          estimatedTotalSeconds -
+          elapsedSeconds
+        );
+
+
+      const minutes =
+        Math.floor(
+          remainingSeconds /
+          60
+        );
+
+
+      const seconds =
+        Math.floor(
+          remainingSeconds %
+          60
+        );
+
+
+      etaText.textContent =
+        `ETA: ${
+          minutes
+        }m ${
+          seconds
+        }s`;
+
+    } else if (
+      job.status !==
+      "retrying"
+    ) {
+
+      etaText.textContent =
+        "ETA: Calculating...";
+
+    }
+
+
+    pollTimer =
+      setTimeout(
+        () => {
+
+          pollJob(
+            jobId,
+            batchSize
+          );
+
+        },
+        2000
+      );
+
+
+  } catch (error) {
+
+    console.error(
+      "Job polling error:",
+      error
+    );
+
+
+    jobStatus.textContent =
+      "Connection temporarily unavailable";
+
+
+    progressText.textContent =
+      "Trying to reconnect...";
+
+
+    pollTimer =
+      setTimeout(
+        () => {
+
+          pollJob(
+            jobId,
+            batchSize
+          );
+
+        },
+        5000
+      );
+
+  }
+
+}
+
+
+/* =========================================================
+   PAUSE / RESUME
+========================================================= */
+
+async function handlePauseResume() {
+
+  if (
+    !activeJobId
+  ) {
+
+    return;
+
+  }
+
+
+  try {
+
+    pauseBtn.disabled =
+      true;
+
+
+    if (
+      !isPaused
+    ) {
+
+      pauseBtn.textContent =
+        "Pausing...";
+
+
+      await pauseJob(
+        activeJobId
+      );
+
+
+      isPaused =
+        true;
+
+
+      pauseBtn.textContent =
+        "Resume Translation";
+
+
+      pauseBtn.style.background =
+        "#16a34a";
+
+
+      jobStatus.textContent =
+        "Translation Paused";
+
+
+    } else {
+
+      pauseBtn.textContent =
+        "Resuming...";
+
+
+      await resumeJob(
+        activeJobId
+      );
+
+
+      isPaused =
+        false;
+
+
+      pauseBtn.textContent =
+        "Pause Translation";
+
+
+      pauseBtn.style.background =
+        "#f59e0b";
+
+
+      jobStatus.textContent =
+        "Translation Resumed";
+
+    }
+
+
+    await pollJob(
+      activeJobId,
+      Number(
+        batchSizeInput.value
+      )
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Pause/resume error:",
+      error
+    );
+
+
+    alert(
+      error.message
+    );
+
+
+  } finally {
+
+    pauseBtn.disabled =
+      false;
+
+  }
+
+}
+
+
+/* =========================================================
+   CANCEL
+========================================================= */
+
+async function handleCancel() {
+
+  if (
+    !activeJobId
+  ) {
+
+    return;
+
+  }
+
+
+  try {
+
+    cancelBtn.disabled =
+      true;
+
+
+    cancelBtn.textContent =
+      "Cancelling...";
+
+
+    await cancelJob(
+      activeJobId
+    );
+
+
+    jobStatus.textContent =
+      "Translation cancellation requested";
+
+
+    cancelBtn.textContent =
+      "Cancellation Requested";
+
+
+    await pollJob(
+      activeJobId,
+      Number(
+        batchSizeInput.value
+      )
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Cancel error:",
+      error
+    );
+
+
+    cancelBtn.disabled =
+      false;
+
+
+    cancelBtn.textContent =
+      "Cancel Translation";
+
+
+    alert(
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   BUTTON EVENTS
+========================================================= */
+
+pauseBtn.addEventListener(
+  "click",
+  handlePauseResume
+);
+
+
+cancelBtn.addEventListener(
+  "click",
+  handleCancel
+);
+
+
+/* =========================================================
+   START NEW TRANSLATION
 ========================================================= */
 
 translateBtn.addEventListener(
@@ -1016,720 +1707,56 @@ translateBtn.addEventListener(
     }
 
 
-    /* =========================
-       RESET JOB STATE
-    ========================= */
+    localStorage.setItem(
+      STORAGE_KEYS.BATCH_SIZE,
+      String(
+        batchSize
+      )
+    );
 
-    currentJobId =
-      null;
 
-    isPaused =
-      false;
+    const file =
+      fileInput.files[0];
 
-    isCancelling =
-      false;
 
-    clearRetryCountdown();
+    localStorage.setItem(
+      STORAGE_KEYS.FILE_NAME,
+      file.name
+    );
 
-    resetDownloadButton();
 
-    resetProgressUI();
-
-    setPauseButtonRunningState();
+    localStorage.setItem(
+      STORAGE_KEYS.FILE_SIZE,
+      formatFileSize(
+        file.size
+      )
+    );
 
 
     try {
 
-      /* =========================
-         DISABLE START
-      ========================= */
-
-      translateBtn.disabled =
-        true;
-
-      translateBtn.style.opacity =
-        "0.6";
-
-      translateBtn.style.cursor =
-        "not-allowed";
-
-      translateBtn.textContent =
-        "Uploading...";
+      setTranslationButtonBusy(
+        true
+      );
 
 
       statusBox.style.display =
         "block";
 
 
-      pauseBtn.style.display =
-        "block";
+      hideJobControls();
 
-      pauseBtn.disabled =
-        true;
 
+      downloadContainer.innerHTML =
+        "";
 
-      cancelBtn.style.display =
-        "block";
 
-      cancelBtn.disabled =
-        false;
+      translationPreviewBox.style.display =
+        "none";
 
-      cancelBtn.textContent =
-        "Cancel Translation";
 
-      cancelBtn.style.background =
-        "#dc2626";
-
-
-      jobStatus.textContent =
-        "Creating translation job...";
-
-
-      progressText.textContent =
-        "Progress: 0%";
-
-
-      /* =========================
-         UPLOAD
-      ========================= */
-
-      const result =
-        await uploadSrt(
-          fileInput.files[0],
-          batchSize
-        );
-
-
-      currentJobId =
-        result.job_id;
-
-
-      if (
-        !currentJobId
-      ) {
-
-        throw new Error(
-          "Backend did not return a job ID."
-        );
-
-      }
-
-
-      jobStatus.textContent =
-        "Translation started";
-
-
-      pauseBtn.disabled =
-        false;
-
-
-      /* =========================
-         CANCEL HANDLER
-      ========================= */
-
-      pauseBtn.onclick = async () => {
-  if (!jobId) {
-    return;
-  }
-
-  try {
-    pauseBtn.disabled = true;
-
-    if (!isPaused) {
-      pauseBtn.textContent = "Pausing...";
-
-      await pauseJob(jobId);
-
-      isPaused = true;
-
-      pauseBtn.textContent = "Resume Translation";
-      pauseBtn.style.background = "#16a34a";
-
-      jobStatus.textContent =
-        "Translation Paused — current batch will finish, then translation will pause.";
-
-    } else {
-      pauseBtn.textContent = "Resuming...";
-
-      await resumeJob(jobId);
-
-      isPaused = false;
-
-      pauseBtn.textContent = "Pause Translation";
-      pauseBtn.style.background = "#f59e0b";
-
-      jobStatus.textContent =
-        "Translation Resumed";
-    }
-
-  } catch (error) {
-    console.error("Pause/Resume error:", error);
-
-    alert(
-      error.message ||
-      "Unable to pause/resume translation."
-    );
-
-  } finally {
-    pauseBtn.disabled = false;
-  }
-};
-          
-      
-
-      /* =========================
-         POLLING START
-      ========================= */
-
-      const startTime =
-        Date.now();
-
-
-      let completed =
-        false;
-
-
-      while (
-        !completed
-      ) {
-
-        await new Promise(
-          resolve =>
-            setTimeout(
-              resolve,
-              2000
-            )
-        );
-
-
-        if (
-          !currentJobId
-        ) {
-
-          break;
-
-        }
-
-
-        const status =
-          await getJobStatus(
-            currentJobId
-          );
-
-
-        const job =
-          status.job;
-
-        if (status.job.status === "paused") {
-          isPaused = true;
-
-          pauseBtn.style.display = "block";
-          pauseBtn.disabled = false;
-
-          pauseBtn.textContent =
-            "Resume Translation";
-
-          pauseBtn.style.background =
-            "#16a34a";
-
-          jobStatus.textContent =
-            "Translation Paused";
-
-          etaText.textContent =
-            "ETA: Paused";
-
-          speedText.textContent =
-            "Speed: Paused";
-        }
-
-        const currentProgress =
-          Number(
-            job.progress ||
-            0
-          );
-
-        if (status.job.status === "processing") {
-          isPaused = false;
-
-          pauseBtn.style.display = "block";
-          pauseBtn.disabled = false;
-
-          pauseBtn.textContent =
-            "Pause Translation";
-
-          pauseBtn.style.background =
-            "#f59e0b";
-
-          jobStatus.textContent =
-            "Translation Processing";
-        }
-
-
-        /* =========================
-           BACKEND STATUS
-        ========================= */
-
-        if (
-          job.status ===
-          "paused"
-        ) {
-
-          isPaused =
-            true;
-
-          setPauseButtonPausedState();
-
-          pauseBtn.disabled =
-            false;
-
-          jobStatus.textContent =
-            "Translation Paused";
-
-          etaText.textContent =
-            "ETA: Paused";
-
-        }
-
-
-        else if (
-          job.status ===
-          "processing"
-        ) {
-
-          if (
-            !isCancelling
-          ) {
-
-            isPaused =
-              false;
-
-            setPauseButtonRunningState();
-
-            pauseBtn.disabled =
-              false;
-
-            jobStatus.textContent =
-              "Status: Processing";
-
-          }
-
-        }
-
-
-        else if (
-          job.status ===
-          "retrying"
-        ) {
-
-          jobStatus.textContent =
-            `⚠️ ${
-              job.retry_message ||
-              "Gemini quota limit reached."
-            }`;
-
-        }
-
-
-        else if (
-          job.status ===
-          "queued"
-        ) {
-
-          jobStatus.textContent =
-            "Status: Queued";
-
-        }
-
-
-        /* =========================
-           RETRY COUNTDOWN
-        ========================= */
-
-        const retrySeconds =
-          Number(
-            job.retry_seconds ||
-            0
-          );
-
-
-        const retryMessage =
-          job.retry_message ||
-          "";
-
-
-        if (
-          retrySeconds > 0
-        ) {
-
-          if (
-            retryCountdownJobId !==
-              currentJobId ||
-            retryCountdownValue <= 0
-          ) {
-
-            retryCountdownJobId =
-              currentJobId;
-
-            retryCountdownValue =
-              retrySeconds;
-
-
-            clearRetryCountdown();
-
-
-            retryCountdownJobId =
-              currentJobId;
-
-            retryCountdownValue =
-              retrySeconds;
-
-
-            jobStatus.textContent =
-              `⚠️ ${
-                retryMessage ||
-                "Gemini quota limit reached."
-              }`;
-
-
-            progressText.textContent =
-              `🔄 Retrying automatically... ${
-                retryCountdownValue
-              }s`;
-
-
-            etaText.textContent =
-              "ETA: Waiting for retry...";
-
-
-            retryCountdownTimer =
-              setInterval(
-                () => {
-
-                  if (
-                    retryCountdownValue >
-                    0
-                  ) {
-
-                    retryCountdownValue--;
-
-                    jobStatus.textContent =
-                      `⚠️ ${
-                        retryMessage ||
-                        "Gemini quota limit reached."
-                      }`;
-
-                    progressText.textContent =
-                      `🔄 Retrying automatically... ${
-                        retryCountdownValue
-                      }s`;
-
-                    etaText.textContent =
-                      "ETA: Waiting for retry...";
-
-                  }
-
-
-                  if (
-                    retryCountdownValue <=
-                    0
-                  ) {
-
-                    clearRetryCountdown();
-
-                  }
-
-                },
-                1000
-              );
-
-          }
-
-        }
-
-
-        /* =========================
-           NORMAL PROGRESS
-        ========================= */
-
-        if (
-          retryCountdownValue <= 0 &&
-          retryCountdownTimer === null &&
-          job.status !== "paused"
-        ) {
-
-          progressText.textContent =
-            "Progress: " +
-            currentProgress +
-            "%";
-
-        }
-
-
-        /* =========================
-           BATCH INFO
-        ========================= */
-
-        const completedItems =
-          Number(
-            job.completed_items ||
-            0
-          );
-
-
-        const totalItems =
-          Number(
-            job.total_items ||
-            0
-          );
-
-
-        const totalBatches =
-          Math.ceil(
-            totalItems /
-            batchSize
-          );
-
-
-        const currentBatch =
-          completedItems === 0
-            ? 0
-            : Math.ceil(
-                completedItems /
-                batchSize
-              );
-
-
-        currentBatchText.textContent =
-          "Current Batch: " +
-          currentBatch +
-          " / " +
-          totalBatches;
-
-
-        /* =========================
-           SPEED
-        ========================= */
-
-        const elapsedSeconds =
-          (
-            Date.now() -
-            startTime
-          ) / 1000;
-
-
-        if (
-          completedItems > 0 &&
-          elapsedSeconds > 0
-        ) {
-
-          const speed =
-            completedItems /
-            elapsedSeconds;
-
-
-          speedText.textContent =
-            "Speed: " +
-            speed.toFixed(2) +
-            " subtitles/sec";
-
-        }
-
-
-        /* =========================
-           ETA
-        ========================= */
-
-        if (
-          retryCountdownValue <= 0 &&
-          retryCountdownTimer === null &&
-          job.status !== "paused"
-        ) {
-
-          etaText.textContent =
-            calculateETA(
-              currentProgress,
-              startTime
-            );
-
-        }
-
-
-        /* =========================
-           LIVE PREVIEW
-        ========================= */
-
-        if (
-          job.translation_preview
-        ) {
-
-          translationPreviewBox.style.display =
-            "block";
-
-
-          translationPreview.textContent =
-            job.translation_preview;
-
-        }
-
-
-        /* =========================
-           PROGRESS BAR
-        ========================= */
-
-        progressBar.style.width =
-          currentProgress +
-          "%";
-
-
-        progressPercent.textContent =
-          currentProgress +
-          "%";
-
-
-        /* =========================
-           COMPLETED
-        ========================= */
-
-        if (
-          job.status ===
-          "completed"
-        ) {
-
-          completed =
-            true;
-
-
-          clearRetryCountdown();
-
-
-          jobStatus.textContent =
-            "Translation completed successfully!";
-
-
-          speedText.textContent =
-            "Speed: Completed";
-
-
-          etaText.textContent =
-            "ETA: Completed";
-
-
-          progressText.textContent =
-            "Progress: 100%";
-
-
-          progressBar.style.width =
-            "100%";
-
-
-          progressPercent.textContent =
-            "100%";
-
-
-          pauseBtn.style.display =
-            "none";
-
-
-          cancelBtn.style.display =
-            "none";
-
-
-          showDownloadButton(
-            currentJobId
-          );
-
-
-          alert(
-            "Translation completed successfully!"
-          );
-
-        }
-
-
-        /* =========================
-           FAILED
-        ========================= */
-
-        if (
-          job.status ===
-          "failed"
-        ) {
-
-          completed =
-            true;
-
-
-          throw new Error(
-            job.error_message ||
-            "Translation failed."
-          );
-
-        }
-
-
-        /* =========================
-           CANCELLED
-        ========================= */
-
-        if (
-          job.status ===
-          "cancelled"
-        ) {
-
-          completed =
-            true;
-
-
-          clearRetryCountdown();
-
-
-          isCancelling =
-            false;
-
-
-          jobStatus.textContent =
-            "Translation Cancelled";
-
-
-          progressText.textContent =
-            "Translation Cancelled — Progress: " +
-            currentProgress +
-            "%";
-
-
-          etaText.textContent =
-            "ETA: Cancelled";
-
-
-          speedText.textContent =
-            "Speed: Cancelled";
-
-
-          setCancelButtonCancelledState();
-
-
-          pauseBtn.style.display =
-            "none";
-
-
-          break;
-
-        }
-
-      }
-
-
-    } catch (error) {
-
-      clearRetryCountdown();
-
-
-      jobStatus.textContent =
-        "Translation failed";
-
-
-      progressText.textContent =
-        error.message;
+      translationPreview.textContent =
+        "";
 
 
       progressBar.style.width =
@@ -1740,6 +1767,84 @@ translateBtn.addEventListener(
         "0%";
 
 
+      progressText.textContent =
+        "Progress: 0%";
+
+
+      currentBatchText.textContent =
+        "Current Batch: 0 / 0";
+
+
+      etaText.textContent =
+        "ETA: Calculating...";
+
+
+      speedText.textContent =
+        "Speed: Calculating...";
+
+
+      jobStatus.textContent =
+        "Uploading SRT file...";
+
+
+      clearRetryState();
+
+
+      const result =
+        await uploadSrt(
+          file,
+          batchSize
+        );
+
+
+      activeJobId =
+        result.job_id;
+
+
+      localStorage.setItem(
+        STORAGE_KEYS.JOB_ID,
+        activeJobId
+      );
+
+
+      translationStartTime =
+        Date.now();
+
+
+      localStorage.setItem(
+        STORAGE_KEYS.START_TIME,
+        String(
+          translationStartTime
+        )
+      );
+
+
+      jobStatus.textContent =
+        "Translation started";
+
+
+      await pollJob(
+        activeJobId,
+        batchSize
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "Translation start error:",
+        error
+      );
+
+
+      jobStatus.textContent =
+        "Translation failed";
+
+
+      progressText.textContent =
+        error.message;
+
+
       etaText.textContent =
         "ETA: Failed";
 
@@ -1748,65 +1853,221 @@ translateBtn.addEventListener(
         "Speed: Failed";
 
 
-      pauseBtn.style.display =
-        "none";
-
-
-      cancelBtn.style.display =
-        "none";
-
-
       alert(
         error.message
       );
 
 
+      clearActiveJobStorage();
+
     } finally {
 
-      clearRetryCountdown();
-
-
-      translateBtn.disabled =
-        false;
-
-
-      translateBtn.style.opacity =
-        "1";
-
-
-      translateBtn.style.cursor =
-        "pointer";
-
-
-      translateBtn.textContent =
-        "Start Translation";
-
-
-      /*
-       * Important:
-       * Completed / cancelled / failed state ke baad
-       * buttons ko unnecessarily visible mat rakho.
-       */
-
       if (
-        !isCancelling &&
-        jobStatus.textContent !==
-          "Translation completed successfully!"
+        !activeJobId
       ) {
 
-        cancelBtn.style.display =
-          "none";
+        setTranslationButtonBusy(
+          false
+        );
 
       }
-
-
-      /*
-       * Current job ID ko immediately clear
-       * nahi kar rahe, kyunki download button
-       * completed job ke liye currentJobId use karta hai.
-       */
 
     }
 
   }
 );
+
+
+/* =========================================================
+   PAGE LOAD / REFRESH RESTORE
+========================================================= */
+
+async function restoreActiveJob() {
+
+  restoreSavedUI();
+
+
+  if (
+    !activeJobId
+  ) {
+
+    return;
+
+  }
+
+
+  const savedBatchSize =
+    Number(
+      localStorage.getItem(
+        STORAGE_KEYS.BATCH_SIZE
+      ) ||
+      batchSizeInput.value ||
+      100
+    );
+
+
+  batchSizeInput.value =
+    savedBatchSize;
+
+
+  statusBox.style.display =
+    "block";
+
+
+  setTranslationButtonBusy(
+    true
+  );
+
+
+  jobStatus.textContent =
+    "Restoring translation job...";
+
+
+  progressText.textContent =
+    "Loading latest progress...";
+
+
+  try {
+
+    const status =
+      await getJobStatus(
+        activeJobId
+      );
+
+
+    const job =
+      status.job;
+
+
+    /*
+      IMPORTANT:
+
+      Agar browser refresh ke baad bhi job backend par
+      processing/paused/retrying state mein hai,
+      hum same job ko monitor karenge.
+    */
+
+
+    const result =
+      updateJobUI(
+        job,
+        savedBatchSize
+      );
+
+
+    if (
+      result ===
+      "completed" ||
+      result ===
+      "failed" ||
+      result ===
+      "cancelled"
+    ) {
+
+      return;
+
+    }
+
+
+    /*
+      Refresh ke baad ETA ke liye exact original
+      frontend start time available ho sakta hai.
+    */
+
+    if (
+      translationStartTime <= 0
+    ) {
+
+      translationStartTime =
+        Date.now();
+
+      localStorage.setItem(
+        STORAGE_KEYS.START_TIME,
+        String(
+          translationStartTime
+        )
+      );
+
+    }
+
+
+    jobStatus.textContent =
+      "Translation restored";
+
+
+    await pollJob(
+      activeJobId,
+      savedBatchSize
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "Unable to restore active job:",
+      error
+    );
+
+
+    /*
+      Job not found hone par stale localStorage
+      clear kar do.
+
+      Lekin temporary network error mein
+      localStorage clear nahi karna chahiye.
+    */
+
+    if (
+      error.message &&
+      error.message.toLowerCase()
+        .includes(
+          "job not found"
+        )
+    ) {
+
+      clearActiveJobStorage();
+
+      setTranslationButtonBusy(
+        false
+      );
+
+      hideJobControls();
+
+      statusBox.style.display =
+        "none";
+
+    } else {
+
+      jobStatus.textContent =
+        "Unable to reconnect to translation job";
+
+      progressText.textContent =
+        "The job may still be running. Retrying...";
+
+
+      setTranslationButtonBusy(
+        true
+      );
+
+
+      setTimeout(
+        () => {
+
+          restoreActiveJob();
+
+        },
+        5000
+      );
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   INITIALIZE APP
+========================================================= */
+
+restoreActiveJob();
