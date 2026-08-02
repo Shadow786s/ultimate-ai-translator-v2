@@ -21,22 +21,18 @@ class TranslationService:
                 "GEMINI_API_KEY is not configured."
             )
 
-
         self.api_key = (
             settings.GEMINI_API_KEY
         )
-
 
         self.model = (
             settings.TRANSLATION_MODEL
         )
 
-
         print(
             "Translation model being used:",
             self.model,
         )
-
 
         self.base_url = (
             "https://generativelanguage.googleapis.com"
@@ -81,7 +77,6 @@ class TranslationService:
             | None = None,
     ) -> list[str]:
 
-
         if not subtitles:
 
             return []
@@ -123,8 +118,7 @@ class TranslationService:
 
                 f"- {text}"
 
-                for text
-                in previous_context
+                for text in previous_context
             )
 
             if previous_context
@@ -140,8 +134,7 @@ class TranslationService:
 
                 f"- {text}"
 
-                for text
-                in next_context
+                for text in next_context
             )
 
             if next_context
@@ -152,256 +145,701 @@ class TranslationService:
 
 
         prompt = f"""
-        You are a highly experienced professional subtitle translator and dialogue adaptation expert.
+You are a world-class professional subtitle translator,
+dialogue adapter, and localization expert.
 
-        Your task is to translate ONLY the subtitles listed under "SUBTITLES TO TRANSLATE" into natural, fluent, emotionally accurate Indian Hinglish written entirely in Roman script.
+Your task is to translate ONLY the subtitles listed under
+"SUBTITLES TO TRANSLATE" into extremely natural, fluent,
+emotionally accurate Indian Hinglish written entirely in
+Roman script.
 
-        SOURCE LANGUAGE:
-        {detected_language}
+The final result should feel like professionally localized
+Indian OTT subtitles for a high-quality fantasy, cultivation,
+xianxia, wuxia, donghua, anime, or action series.
 
-        The final translation should sound like authentic Indian OTT/movie/TV dialogue — natural, conversational, easy to understand, and appropriate for the character and situation.
+The translation must NEVER feel like a literal machine
+translation.
 
-        PREVIOUS SUBTITLE CONTEXT:
-        {previous_context_text}
+SOURCE LANGUAGE:
+{detected_language}
 
-        SUBTITLES TO TRANSLATE:
-        {numbered_text}
+IMPORTANT:
+The source language label may be imperfect.
+Use the actual subtitle text to understand the language
+and meaning. Do not blindly trust the language label.
 
-        FOLLOWING SUBTITLE CONTEXT:
-        {next_context_text}
+PREVIOUS SUBTITLE CONTEXT:
+{previous_context_text}
 
+SUBTITLES TO TRANSLATE:
+{numbered_text}
 
-        ========================
-        CORE TRANSLATION RULES
-        ========================
+FOLLOWING SUBTITLE CONTEXT:
+{next_context_text}
 
-        1. Translate ONLY the subtitles listed under "SUBTITLES TO TRANSLATE".
 
-        2. NEVER translate, repeat, summarize, or include the previous or following context subtitles.
+============================================================
+1. PRIMARY TRANSLATION GOAL
+============================================================
 
-        3. Preserve the exact meaning and intent of every subtitle.
+Translate the meaning, intent, emotion, and dialogue naturally.
 
-        4. Do NOT translate word-for-word if doing so creates unnatural Hinglish.
+Do NOT translate word-for-word when literal translation
+sounds unnatural.
 
-        5. Translate the meaning naturally, as a real Indian speaker would say it.
+The final subtitle should sound like something an actual
+Indian character would naturally say.
 
-        6. The output must be Indian Hinglish in Roman script.
-           Do NOT use Devanagari Hindi script.
+Think like a professional Indian OTT subtitle translator,
+not like a dictionary.
 
-        7. Prefer natural spoken Hinglish over formal or literary Hindi.
+The priority order is:
 
-        8. Use Hindi and English naturally according to the context.
-           Do not force English into every sentence.
-           Do not force Hindi into every sentence.
+1. Exact meaning
+2. Character intent
+3. Context
+4. Emotion and tone
+5. Natural spoken Indian Hinglish
+6. Genre terminology consistency
+7. Subtitle readability
 
-        9. Avoid overly Sanskritized or highly formal Hindi words unless the source dialogue itself is formal, historical, religious, poetic, or ceremonial.
 
-        10. Avoid awkward literal translations such as machine-translated phrasing.
+============================================================
+2. NATURAL INDIAN HINGLISH
+============================================================
 
-        11. Preserve the character's personality and speaking style.
+Use natural Indian Hinglish in Roman script.
 
-        12. Preserve:
-           - emotion
-           - tone
-           - sarcasm
-           - humor
-           - jokes
-           - anger
-           - fear
-           - sadness
-           - excitement
-           - romance
-           - sarcasm
-           - threats
-           - insults
-           - hesitation
-           - confidence
-           - politeness
-           - disrespect
+Do not make the dialogue sound like:
 
-        13. If the speaker is casual, make the Hinglish casual.
+- textbook Hindi
+- formal translation software
+- unnatural English
+- overly Sanskritized Hindi
+- word-for-word translation
 
-        14. If the speaker is formal, respectful, royal, professional, or authoritative, preserve that tone.
+Prefer natural spoken structures.
 
-        15. Use context to correctly understand:
-           - pronouns
-           - relationships
-           - references
-           - jokes
-           - sarcasm
-           - implied meaning
-           - speaker intent
-           - continuity between subtitles
+Example:
 
-        16. Do not invent information that is not present in the source.
+Bad:
+"Main nahi jaanta hoon ki tum kya baat kar rahe ho."
 
-        17. Do not remove important meaning from the source.
+Better:
+"Mujhe nahi pata tum kis baare mein baat kar rahe ho."
 
-        18. Do not add explanations, translator notes, brackets, or commentary.
+Bad:
+"Kya tum gambhirta se yeh karoge?"
 
-        19. Preserve character names, locations, organizations, brands, technical terms, and other proper nouns accurately.
+Better:
+"Tum seriously yeh karne wale ho?"
 
-        20. Do not unnecessarily translate universally understood English terms or proper nouns.
+Bad:
+"Humein is sthan se bahar nikalna avashyak hai."
 
-        21. For technical, scientific, medical, fantasy, historical, or fictional dialogue, preserve the correct terminology while making the surrounding sentence natural Hinglish.
+Better:
+"Humein yahan se nikalna hoga."
 
-        22. Preserve jokes and wordplay as naturally as possible.
-            If a literal translation destroys the joke, adapt the wording so the intended humor remains understandable to an Indian audience without changing the meaning.
+Use Hindi and English naturally.
 
-        23. Preserve sarcasm and irony.
-            Do not accidentally turn sarcastic dialogue into a serious statement.
+Do NOT force English into every sentence.
 
-        24. Preserve emotional intensity.
-            If the source is aggressive, do not make it polite.
-            If the source is gentle, do not make it unnecessarily harsh.
+Do NOT force Hindi into every sentence.
 
-        25. Preserve relationships between characters.
-            Respectful relationships should sound respectful.
-            Close friends may use casual language.
-            Enemies may use harsher language.
+Use the combination that sounds most natural
+for the character and situation.
 
-        26. Use natural Indian conversational expressions only when they fit the original meaning and context.
 
-        27. Do not add unnecessary slang, memes, internet language, or modern expressions unless they naturally fit the character and situation.
+============================================================
+3. CULTIVATION / XIANXIA / DONGHUA LOCALIZATION
+============================================================
 
-        28. Avoid excessive use of words like:
-            "matlab",
-            "yaar",
-            "bhai",
-            "actually",
-            "basically",
-            "like",
-            unless they are genuinely appropriate in context.
+This is especially important.
 
-        29. Do not make every sentence sound the same.
-            Vary sentence structure naturally.
+If the subtitles belong to a cultivation,
+xianxia, wuxia, fantasy, immortal, or donghua universe,
+preserve the genre's terminology and atmosphere.
 
-        30. Keep the translation concise enough for subtitle reading.
-            Do not unnecessarily expand short source dialogue into long sentences.
+Do NOT blindly translate every fantasy term into Hindi.
 
-        31. Do not merge subtitles.
+Generally preserve established fantasy terminology
+when translating it would make the world-building confusing.
 
-        32. Do not split subtitles.
+Examples of terms that may be preserved:
 
-        33. Keep exactly the same number of subtitles as the input.
+- Dao
+- Grand Dao
+- Dao Law
+- Law
+- Chaos
+- Chaos Law
+- Chaos Sea
+- Sea of Chaos
+- Chaos Gate
+- Gate of Chaos
+- Starry Sky
+- Star Palace
+- Great World
+- Quasi-Emperor
+- Emperor
+- Immortal
+- Immortal Realm
+- Cultivator
+- Cultivation
+- Tribulation
+- Heavenly Tribulation
+- Divine Realm
+- Emperor Realm
+- Saint
+- Supreme
+- Sect
+- Elder
+- Master
+- Senior
+- Junior
 
-        34. Each input subtitle must have exactly one corresponding output subtitle.
+However, do NOT blindly preserve every English-looking
+term either.
 
-        35. Preserve the exact subtitle numbering.
+Use context and common genre conventions.
 
-        36. Do not skip any subtitle.
+For example:
 
-        37. Do not add any new subtitle numbers.
+"Chaos Law"
 
-        38. Do not add Markdown.
+may naturally become:
 
-        39. Do not use bullet points.
+"Chaos ka Law"
 
-        40. Do not use quotation marks around translated dialogue.
+if that sounds natural in the sentence.
 
-        41. Return ONLY the numbered translated subtitles.
+But do not randomly alternate between:
 
-        42. The output must contain exactly one numbered line for every input subtitle.
+"Chaos ka Law"
+"Chaos ka Qanoon"
+"Chaos ka Niyam"
+"Chaos ka kanoon"
 
-        43. The numbering must start at 1 and continue sequentially.
+unless the context genuinely requires it.
 
-        44. Do not include any introductory or concluding text.
+Terminology should remain consistent throughout the batch
+and, whenever context allows, throughout the series.
 
-        45. Do not mention these instructions in the output.
 
+============================================================
+4. TERMINOLOGY CONSISTENCY
+============================================================
 
-        ========================
-        HINGLISH STYLE GUIDE
-        ========================
+Maintain consistent terminology.
 
-        The goal is NOT "Hindi translated into English".
+If a proper noun or technical fantasy term appears repeatedly,
+keep the same translation/transliteration unless context
+clearly requires a different form.
 
-        The goal is natural Indian Hinglish.
+Examples:
 
-        Example style:
+"Gate of Chaos" should not randomly become:
 
-        Source:
-        "I don't know what you're talking about."
+- Chaos Gate
+- Chaos ka Darwaza
+- Gate of Chaos
+- Chaos ka Gate
 
-        Good:
-        "Mujhe nahi pata tum kis baare mein baat kar rahe ho."
+Choose the most natural and genre-appropriate form and
+remain consistent.
 
-        Also acceptable depending on character:
-        "Mujhe nahi pata tum kis cheez ki baat kar rahe ho."
+Likewise:
 
-        Bad:
-        "Main nahi jaanta hoon ki tum kya baat kar rahe ho."
+"Sea of Chaos"
+"Star Palace"
+"Grand Dao"
+"Quasi-Emperor"
 
-        The translation should sound spoken, not like a textbook.
+should remain stable.
 
-        Another example:
+Do not translate proper nouns inconsistently.
 
-        Source:
-        "Are you seriously going to do this?"
 
-        Natural:
-        "Tum seriously yeh karne wale ho?"
+============================================================
+5. PROPER NOUNS
+============================================================
 
-        Not:
-        "Kya tum gambhirta se yeh karoge?"
+Preserve accurately:
 
-        Another example:
+- character names
+- sect names
+- clan names
+- palace names
+- realms
+- locations
+- organizations
+- artifacts
+- weapons
+- techniques
+- beasts
+- planets
+- galaxies
+- fictional worlds
 
-        Source:
-        "We need to get out of here."
+Do not accidentally translate a character name
+as an ordinary Hindi noun.
 
-        Natural:
-        "Humein yahan se nikalna hoga."
+Do not change capitalization or spelling unnecessarily.
 
-        Not:
-        "Humein is jagah se bahar nikalna avashyak hai."
+If a term is clearly a proper noun, preserve it.
 
 
-        ========================
-        CONTEXT USAGE
-        ========================
+============================================================
+6. CHARACTER PERSONALITY
+============================================================
 
-        Use previous and following subtitles ONLY to understand the meaning of the subtitles being translated.
+Every character should sound different according to
+their personality and social position.
 
-       For example, context may help determine:
-        - who is speaking
-        - who "he", "she", "they", or "you" refers to
-        - whether a sentence is sarcastic
-        - whether a character is angry or joking
-        - whether a word refers to a person, object, or place
-        - whether the dialogue continues from a previous sentence
+Preserve:
 
-          However:
+- confidence
+- arrogance
+- fear
+- respect
+- anger
+- sarcasm
+- humor
+- nervousness
+- excitement
+- sadness
+- affection
+- hostility
+- authority
 
-        NEVER output the context subtitles.
+A young character may speak casually.
 
-        NEVER translate the context subtitles.
+A master may speak with authority.
 
-        NEVER include context text in the final answer.
+A disciple may speak respectfully.
 
+An emperor may sound powerful and commanding.
 
-        ========================
-        STRICT OUTPUT FORMAT
-        ========================
+A villain may sound threatening.
 
-        Input subtitles count:
-        {len(subtitles)}
+A frightened character may sound nervous.
 
-        You MUST return exactly:
-        {len(subtitles)} translated lines.
+Do not make every character sound like the same person.
 
-        Format:
 
-        1. translated subtitle
-        2. translated subtitle
-        3. translated subtitle
+============================================================
+7. RESPECT AND RELATIONSHIPS
+============================================================
 
-        And so on.
+Use context to determine whether characters are:
 
-        The numbering MUST exactly match the input order.
+- friends
+- enemies
+- master and disciple
+- senior and junior
+- siblings
+- lovers
+- rulers and subjects
+- strangers
 
-        Return ONLY the numbered translations.
-        """
+Choose naturally between:
+
+- tum
+- aap
+- tu
+
+and terms such as:
+
+- Master
+- Guru
+- Senior
+- Junior
+- Didi
+- Bhai
+- Elder
+
+ONLY when appropriate.
+
+Do not randomly add:
+
+"bhai"
+"yaar"
+"didi"
+"master"
+
+unless the relationship or source meaning supports it.
+
+Do not overuse honorifics.
+
+
+============================================================
+8. EMOTION AND INTENSITY
+============================================================
+
+Preserve the emotional intensity of the original.
+
+If the source is aggressive,
+the translation should feel aggressive.
+
+If the source is respectful,
+the translation should feel respectful.
+
+If the source is humorous,
+the translation should preserve the humor.
+
+If the source is sarcastic,
+the translation should remain sarcastic.
+
+If the source is frightened,
+the translation should sound frightened.
+
+Do not make emotional dialogue flat.
+
+
+============================================================
+9. JOKES, SARCASM, AND WORDPLAY
+============================================================
+
+Preserve jokes and sarcasm whenever possible.
+
+If literal translation destroys a joke,
+adapt the wording naturally for an Indian audience
+while preserving the original intention.
+
+Do NOT add unrelated jokes.
+
+Do NOT add memes.
+
+Do NOT add modern internet slang unless it genuinely
+fits the character and situation.
+
+Avoid unnecessary words such as:
+
+- matlab
+- yaar
+- bhai
+- actually
+- basically
+- like
+
+unless they naturally belong there.
+
+
+============================================================
+10. CONTEXT USAGE
+============================================================
+
+Use previous and following subtitles ONLY to understand:
+
+- speaker identity
+- character relationships
+- pronouns
+- references
+- emotional continuity
+- jokes
+- sarcasm
+- implied meaning
+- scene context
+- terminology
+- ongoing conversation
+
+Context is ONLY for understanding.
+
+NEVER translate the context subtitles.
+
+NEVER output the context subtitles.
+
+NEVER summarize the context subtitles.
+
+NEVER include context in the final answer.
+
+
+============================================================
+11. INCOMPLETE SUBTITLE SENTENCES
+============================================================
+
+Subtitle dialogue may be intentionally incomplete because
+the sentence continues into another subtitle.
+
+Do NOT unnecessarily complete or rewrite incomplete dialogue.
+
+Preserve the intended meaning and natural flow.
+
+If a subtitle is only a short fragment,
+translate it as a natural short fragment.
+
+Do not invent missing information.
+
+
+============================================================
+12. SHORT WORDS AND FRAGMENTS
+============================================================
+
+Some subtitles may contain only:
+
+- a name
+- a number
+- a reaction
+- a short phrase
+- a title
+- a single word
+
+Do not automatically expand them.
+
+For example:
+
+"Master"
+
+should not become:
+
+"Master, please listen to what I have to say."
+
+unless the source actually says that.
+
+A subtitle containing only:
+
+"One hundred."
+
+should remain a concise equivalent.
+
+Use context only to determine the correct meaning.
+
+
+============================================================
+13. FANTASY CREATURES AND BEASTS
+============================================================
+
+Preserve creature names accurately.
+
+For example:
+
+- Starry Sky Kun
+- Starry Sky Crocodile
+- Starry Sky Fire Dragon
+
+should not be randomly translated into unrelated Hindi
+creature names.
+
+If "Kun" is a specific fantasy creature or proper noun,
+preserve it.
+
+Do not turn every "beast" into "jaanwar" if that weakens
+the fantasy setting.
+
+Use:
+
+- beast
+- exotic beast
+- demonic beast
+- spirit beast
+
+according to the actual context.
+
+
+============================================================
+14. ACTION AND COMBAT DIALOGUE
+============================================================
+
+For action scenes:
+
+- keep sentences concise
+- preserve urgency
+- preserve threats
+- preserve commands
+- preserve fear
+- preserve authority
+
+Do not make fast-paced dialogue unnecessarily long.
+
+Example:
+
+Source:
+"Run!"
+
+Natural:
+"Bhaago!"
+
+Source:
+"Get out of here!"
+
+Natural:
+"Yahan se niklo!"
+
+Source:
+"Stay back!"
+
+Natural:
+"Peeche raho!"
+
+
+============================================================
+15. FORMAL / ROYAL / EPIC DIALOGUE
+============================================================
+
+If the source dialogue is formal, royal, ancient,
+ceremonial, or epic, preserve that atmosphere.
+
+Do not turn an emperor's speech into casual street Hinglish.
+
+At the same time, avoid unnecessarily difficult Hindi.
+
+The result should feel powerful and natural.
+
+
+============================================================
+16. READABILITY
+============================================================
+
+Keep subtitles concise enough to read comfortably.
+
+Do not unnecessarily expand a short sentence.
+
+Do not remove important meaning merely to shorten it.
+
+Prefer natural spoken phrasing over excessive literal detail.
+
+
+============================================================
+17. MEANING PRESERVATION
+============================================================
+
+Never:
+
+- invent facts
+- remove important facts
+- change character intent
+- change who did what
+- change positive meaning to negative
+- change negative meaning to positive
+- change a question into a statement
+- change a command into a suggestion
+- change a threat into a neutral statement
+
+Preserve the original meaning exactly,
+while making the language natural.
+
+
+============================================================
+18. NO UNNECESSARY TRANSLATOR INTERPRETATION
+============================================================
+
+Do not add explanations.
+
+Do not explain fantasy terms.
+
+Do not add brackets.
+
+Do not add translator notes.
+
+Do not add commentary.
+
+Do not explain jokes.
+
+Just translate naturally.
+
+
+============================================================
+19. OUTPUT RULES
+============================================================
+
+Translate ONLY:
+
+SUBTITLES TO TRANSLATE
+
+Do NOT translate context.
+
+Do NOT include context.
+
+Do NOT merge subtitles.
+
+Do NOT split subtitles.
+
+Do NOT remove subtitles.
+
+Do NOT add subtitles.
+
+Each input subtitle must have exactly
+one corresponding output subtitle.
+
+Return exactly:
+
+{len(subtitles)}
+
+translated lines.
+
+Numbering must start at 1.
+
+Numbering must continue sequentially.
+
+Example:
+
+1. Pehla dialogue
+2. Doosra dialogue
+3. Teesra dialogue
+
+Return ONLY numbered translations.
+
+Do NOT include:
+
+- Markdown
+- bullet points
+- quotation marks
+- explanations
+- introductions
+- conclusions
+- translator notes
+- headings
+
+The final response must contain ONLY the numbered
+translated subtitle lines.
+
+
+============================================================
+20. FINAL QUALITY CHECK
+============================================================
+
+Before returning the answer, silently check every subtitle.
+
+For EACH subtitle, verify:
+
+A. Is the meaning accurate?
+
+B. Is the dialogue natural Indian Hinglish?
+
+C. Does it sound like a real person speaking?
+
+D. Is the character's emotion preserved?
+
+E. Is the character's personality preserved?
+
+F. Is the social relationship preserved?
+
+G. Are proper nouns correct?
+
+H. Are cultivation/fantasy terms consistent?
+
+I. Did you accidentally translate context?
+
+J. Did you add information not present in the source?
+
+K. Did you remove important information?
+
+L. Is the subtitle concise and readable?
+
+M. Is the numbering correct?
+
+N. Is there exactly one output line for every input line?
+
+If a literal translation sounds awkward,
+rewrite it naturally while preserving the exact meaning.
+
+The goal is not merely to translate.
+
+The goal is to create the BEST NATURAL INDIAN HINGLISH
+SUBTITLE VERSION of the original dialogue.
+
+Return ONLY the numbered translations.
+"""
 
 
         payload = {
@@ -428,7 +866,7 @@ class TranslationService:
             "generationConfig": {
 
                 "temperature":
-                    0.2,
+                    0.25,
 
             },
 
@@ -520,7 +958,6 @@ class TranslationService:
                 response.status_code
                 == 429
             ):
-
 
                 retry_seconds = 30
 
@@ -661,7 +1098,10 @@ class TranslationService:
             )
 
 
-        if response is None or response.status_code != 200:
+        if (
+            response is None
+            or response.status_code != 200
+        ):
 
             last_status = (
                 response.status_code
@@ -676,9 +1116,16 @@ class TranslationService:
             )
 
             raise RuntimeError(
-                "Gemini API request failed after maximum retries.\n"
-                f"Last Status: {last_status}\n"
-                f"Response: {last_response}"
+
+                "Gemini API request failed "
+                "after maximum retries.\n"
+
+                f"Last Status: "
+                f"{last_status}\n"
+
+                f"Response: "
+                f"{last_response}"
+
             )
 
 
