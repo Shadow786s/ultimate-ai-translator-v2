@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 
 from collections.abc import (
@@ -6,9 +7,14 @@ from collections.abc import (
     Callable,
 )
 
+from typing import Any
+
 import httpx
 
 from app.core.config import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class TranslationService:
@@ -21,27 +27,1169 @@ class TranslationService:
                 "GEMINI_API_KEY is not configured."
             )
 
-
         self.api_key = (
             settings.GEMINI_API_KEY
         )
-
 
         self.model = (
             settings.TRANSLATION_MODEL
         )
 
-
-        print(
-            "Translation model being used:",
+        logger.info(
+            "Translation model being used: %s",
             self.model,
         )
-
 
         self.base_url = (
             "https://generativelanguage.googleapis.com"
             "/v1beta/models"
         )
+
+        self.url = (
+            f"{self.base_url}/"
+            f"{self.model}:generateContent"
+            f"?key={self.api_key}"
+        )
+
+        self.timeout = httpx.Timeout(
+            connect=30.0,
+            read=120.0,
+            write=30.0,
+            pool=30.0,
+        )
+
+        self._client = httpx.AsyncClient(
+            timeout=self.timeout,
+            limits=httpx.Limits(
+                max_connections=20,
+                max_keepalive_connections=10,
+            ),
+        )
+
+
+    async def close(self):
+
+        if not self._client.is_closed:
+
+            await self._client.aclose()
+
+
+    async def __aenter__(self):
+
+        return self
+
+
+    async def __aexit__(
+        self,
+        exc_type,
+        exc_value,
+        traceback,
+    ):
+
+        await self.close()
+
+
+    @staticmethod
+    def _clean_context(
+        values: list[str] | None,
+    ) -> list[str]:
+
+        if not values:
+
+            return []
+
+        cleaned = []
+
+        for value in values:
+
+            if value is None:
+
+                continue
+
+            value = str(value).strip()
+
+            if not value:
+
+                continue
+
+            cleaned.append(
+                value
+            )
+
+        return cleaned
+
+
+    @staticmethod
+    def _format_context(
+        values: list[str],
+        empty_message: str,
+    ) -> str:
+
+        if not values:
+
+            return empty_message
+
+        return "\n".join(
+
+            f"{index + 1}. {text}"
+
+            for index, text
+            in enumerate(values)
+
+        )
+
+
+    @staticmethod
+    def _format_numbered_subtitles(
+        subtitles: list[str],
+    ) -> str:
+
+        return "\n".join(
+
+            f"{index + 1}. {text}"
+
+            for index, text
+            in enumerate(
+                subtitles
+            )
+
+        )
+
+
+    async def _wait_until_can_continue(
+        self,
+        job_id: str | None,
+        wait_if_paused:
+            Callable[
+                [str],
+                Awaitable[bool],
+            ]
+            | None,
+        is_cancelled:
+            Callable[
+                [str],
+                Awaitable[bool],
+            ]
+            | None,
+    ) -> bool:
+
+        if (
+            job_id
+            and is_cancelled
+            and await is_cancelled(
+                job_id
+            )
+        ):
+
+            return False
+
+
+        if (
+            job_id
+            and wait_if_paused
+        ):
+
+            return await wait_if_paused(
+                job_id
+            )
+
+
+        return True
+
+
+    @staticmethod
+    def _extract_retry_seconds(
+        response: httpx.Response,
+    ) -> int:
+
+        default_retry = 30
+
+
+        retry_after = (
+            response.headers.get(
+                "Retry-After"
+            )
+        )
+
+
+        if retry_after:
+
+            try:
+
+                return max(
+                    1,
+                    int(
+                        float(
+                            retry_after
+                        )
+                    ),
+                )
+
+            except (
+                ValueError,
+                TypeError,
+            ):
+
+                pass
+
+
+        try:
+
+            error_json = (
+                response.json()
+            )
+
+            details = (
+
+                error_json
+                .get(
+                    "error",
+                    {}
+                )
+                .get(
+                    "details",
+                    []
+                )
+
+            )
+
+
+            for item in details:
+
+                retry_delay = (
+                    item.get(
+                        "retryDelay"
+                    )
+                )
+
+
+                if not retry_delay:
+
+                    continue
+
+
+                match = re.search(
+
+                    r"(\d+(?:\.\d+)?)",
+
+                    str(
+                        retry_delay
+                    ),
+
+                )
+
+
+                if match:
+
+                    return max(
+
+                        1,
+
+                        int(
+
+                            float(
+
+                                match.group(
+                                    1
+                                )
+
+                            )
+
+                        ),
+
+                    )
+
+
+        except Exception:
+
+            pass
+
+
+        return default_retry
+
+
+    @staticmethod
+    def _is_retryable_status(
+        status_code: int,
+    ) -> bool:
+
+        return status_code in {
+
+            408,  # Request Timeout
+
+            409,  # Conflict
+
+            425,  # Too Early
+
+            429,  # Rate Limit
+
+            500,  # Internal Server Error
+
+            502,  # Bad Gateway
+
+            503,  # Service Unavailable
+
+            504,  # Gateway Timeout
+
+        }
+
+
+    @staticmethod
+    def _strip_code_fences(
+        text: str,
+    ) -> str:
+
+        text = text.strip()
+
+
+        text = re.sub(
+
+            r"^```(?:text|txt)?\s*",
+
+            "",
+
+            text,
+
+            flags=re.IGNORECASE,
+
+        )
+
+
+        text = re.sub(
+
+            r"\s*```$",
+
+            "",
+
+            text,
+
+        )
+
+
+        return text.strip()
+
+
+    @staticmethod
+    def _parse_translation_output(
+        output: str,
+        expected_count: int,
+    ) -> list[str]:
+
+        output = (
+            TranslationService
+            ._strip_code_fences(
+                output
+            )
+        )
+
+
+        translated = []
+
+
+        expected_number = 1
+
+
+        for raw_line in output.splitlines():
+
+            line = raw_line.strip()
+
+
+            if not line:
+
+                continue
+
+
+            match = re.match(
+
+                r"^(\d+)\s*[\.\):\-]\s*(.*?)\s*$",
+
+                line,
+
+            )
+
+
+            if not match:
+
+                continue
+
+
+            number = int(
+                match.group(
+                    1
+                )
+            )
+
+
+            text = (
+                match.group(
+                    2
+                )
+                .strip()
+            )
+
+
+            if (
+                number
+                != expected_number
+            ):
+
+                raise ValueError(
+
+                    "Gemini returned invalid "
+                    "subtitle numbering. "
+
+                    f"Expected "
+                    f"{expected_number}, "
+
+                    f"received "
+                    f"{number}."
+
+                )
+
+
+            if not text:
+
+                raise ValueError(
+
+                    "Gemini returned an empty "
+                    "translation for subtitle "
+                    f"{number}."
+
+                )
+
+
+            translated.append(
+                text
+            )
+
+
+            expected_number += 1
+
+
+        if (
+            len(translated)
+            != expected_count
+        ):
+
+            raise ValueError(
+
+                "Gemini translation output "
+                "count does not match input "
+                "subtitle count. "
+
+                f"Expected "
+                f"{expected_count}, "
+
+                f"received "
+                f"{len(translated)}."
+
+            )
+
+
+        return translated
+
+
+    @staticmethod
+    def _build_prompt(
+        subtitles: list[str],
+        source_language: str,
+        previous_context: list[str],
+        next_context: list[str],
+        previous_translated_context: list[str],
+        terminology_context: list[str],
+    ) -> str:
+
+        numbered_text = (
+            TranslationService
+            ._format_numbered_subtitles(
+                subtitles
+            )
+        )
+
+
+        previous_source = (
+            TranslationService
+            ._format_context(
+
+                previous_context,
+
+                "No previous source context available.",
+
+            )
+        )
+
+
+        next_source = (
+            TranslationService
+            ._format_context(
+
+                next_context,
+
+                "No following source context available.",
+
+            )
+        )
+
+
+        previous_translated = (
+            TranslationService
+            ._format_context(
+
+                previous_translated_context,
+
+                "No previous translated dialogue available.",
+
+            )
+        )
+
+
+        terminology = (
+            TranslationService
+            ._format_context(
+
+                terminology_context,
+
+                "No established terminology available.",
+
+            )
+        )
+
+
+        return f"""
+You are a senior subtitle localization expert,
+dialogue adapter, and professional Indian Hinglish
+translator specializing in:
+
+- Chinese cultivation
+- Xianxia
+- Xuanhuan
+- Donghua
+- Fantasy
+- Immortal worlds
+- Martial arts
+- Mythology
+- Ancient and fictional settings
+
+Your task is to translate ONLY the subtitles under:
+
+SUBTITLES TO TRANSLATE
+
+into extremely natural Indian Hinglish written entirely
+in Roman script.
+
+The result must feel like a professionally localized
+Indian OTT anime/donghua/fantasy subtitle track.
+
+It must NOT sound like:
+
+- machine translation
+- Google Translate
+- literal word-for-word translation
+- textbook Hindi
+- awkward Hindi-English mixing
+- unnecessary Sanskritized Hindi
+- unnecessary English jargon
+
+
+========================================================
+SOURCE LANGUAGE
+========================================================
+
+{source_language}
+
+
+========================================================
+PREVIOUS SOURCE CONTEXT
+========================================================
+
+This context is provided ONLY to understand meaning,
+speaker intent, pronouns, relationships, continuity,
+and references.
+
+DO NOT translate it.
+DO NOT output it.
+
+{previous_source}
+
+
+========================================================
+SUBTITLES TO TRANSLATE
+========================================================
+
+{numbered_text}
+
+
+========================================================
+FOLLOWING SOURCE CONTEXT
+========================================================
+
+This context is provided ONLY to understand meaning,
+speaker intent, pronouns, relationships, continuity,
+and references.
+
+DO NOT translate it.
+DO NOT output it.
+
+{next_source}
+
+
+========================================================
+PREVIOUS TRANSLATED DIALOGUE
+========================================================
+
+These are earlier translated subtitles.
+
+Use them ONLY for:
+
+- character voice consistency
+- relationship consistency
+- title consistency
+- terminology consistency
+- naming consistency
+- established localization style
+
+Do NOT blindly copy their grammar.
+
+If an earlier translation is awkward or incorrect,
+DO NOT repeat its mistake.
+
+DO NOT output these lines.
+
+{previous_translated}
+
+
+========================================================
+ESTABLISHED TERMINOLOGY
+========================================================
+
+These are known terminology choices established earlier
+in the story.
+
+Prefer consistency for important recurring terms.
+
+However, do NOT blindly follow a terminology choice if
+the source clearly uses a different concept.
+
+Do NOT output this terminology list.
+
+{terminology}
+
+
+========================================================
+TRANSLATION PRIORITY
+========================================================
+
+Follow this priority order:
+
+1. Exact source meaning.
+2. Correct source-language interpretation.
+3. Correct context and speaker intent.
+4. Correct character relationships.
+5. Correct emotional tone.
+6. Correct fantasy/cultivation terminology.
+7. Natural Indian Hinglish.
+8. Subtitle readability and concision.
+
+Naturalness is important.
+
+But naturalness must NEVER be achieved by changing
+the actual meaning.
+
+
+========================================================
+GOLDEN RULE: THINK FIRST, TRANSLATE SECOND
+========================================================
+
+Before writing each subtitle, silently determine:
+
+- Who is speaking?
+- Who is being addressed?
+- What is the speaker trying to say?
+- Is this a question, command, threat, warning,
+  observation, joke, complaint, or statement?
+- Is the sentence continuing from another subtitle?
+- Is the sentence intentionally incomplete?
+- Is the word referring to a person, creature,
+  place, technique, law, realm, or object?
+- Is the dialogue formal, casual, respectful,
+  arrogant, frightened, sarcastic, childish,
+  authoritative, or humorous?
+
+Then translate the intended meaning naturally.
+
+Do NOT expose this reasoning.
+
+
+========================================================
+NATURAL INDIAN HINGLISH
+========================================================
+
+Use natural spoken Indian Hinglish.
+
+Hindi and English may be mixed naturally.
+
+Do NOT force English into every sentence.
+
+Do NOT force Hindi into every sentence.
+
+Use the language that an Indian viewer would naturally
+expect in the situation.
+
+Examples:
+
+Natural:
+
+"Mujhe nahi pata tum kis baare mein baat kar rahe ho."
+
+"Hum yahan se kaise niklenge?"
+
+"Chinta mat karo, Master."
+
+"Yeh jagah bahut khatarnak hai."
+
+"Sirf Chaos Law hi tumhe bacha sakta hai."
+
+Avoid mechanical phrasing such as:
+
+"Main nahi jaanta hoon ki tum kya baat kar rahe ho."
+
+"Humein is location se bahar nikalna avashyak hai."
+
+
+========================================================
+FANTASY AND CULTIVATION TERMINOLOGY
+========================================================
+
+Important world-building terms should remain stable.
+
+Examples:
+
+Chaos Law
+Gate of Chaos
+Sea of Chaos
+Quasi-Emperor
+Grand Dao
+Dao
+Origin Qi
+Starry Sky Kun
+Starry Sky Crocodile
+Starry Sky Fire Dragon
+Cultivator
+Emperor
+Master
+Immortal
+Realm
+Great World
+
+Do NOT randomly alternate important terms.
+
+For example, if the established term is:
+
+Chaos Law
+
+do not randomly switch between:
+
+Chaos Law
+Chaos ka law
+Chaos ka kanoon
+Chaos ka niyam
+
+unless there is a clear contextual reason.
+
+Similarly, maintain consistent names for:
+
+- realms
+- cultivation levels
+- titles
+- techniques
+- locations
+- organizations
+- artifacts
+- creatures
+
+
+========================================================
+IMPORTANT: DO NOT OVER-PRESERVE ENGLISH
+========================================================
+
+Preserve proper fantasy terms.
+
+But ordinary dialogue should remain natural.
+
+For example:
+
+Good:
+
+"Hum is pul ko paar kaise karenge?"
+
+Not:
+
+"How will we cross this bridge?"
+
+Good:
+
+"Chaos Law hamla kar dega."
+
+Not:
+
+"The Chaos Law will attack us."
+
+Good:
+
+"Devtaon ke lok mein ja sakta hoon."
+
+Not:
+
+"Realm of gods mein enter kar sakta hoon."
+
+Unless the English term is an established in-world term.
+
+
+========================================================
+TERMINOLOGY DECISION RULE
+========================================================
+
+For every important term, silently classify it as:
+
+A. Proper noun / named concept
+B. Established world-building term
+C. Technical cultivation term
+D. Normal dialogue word
+
+For A, preserve accurately.
+
+For B, maintain established terminology.
+
+For C, choose stable terminology appropriate to the story.
+
+For D, translate naturally into Hinglish.
+
+Do NOT treat every English-looking word as a proper noun.
+
+
+========================================================
+CHARACTER VOICE
+========================================================
+
+Every character should sound like themselves.
+
+Preserve:
+
+- arrogance
+- calmness
+- fear
+- confidence
+- innocence
+- childishness
+- sarcasm
+- humor
+- authority
+- respect
+- disrespect
+
+Do not make every character sound identical.
+
+
+========================================================
+RELATIONSHIPS AND TITLES
+========================================================
+
+Maintain established relationships.
+
+If a character calls someone:
+
+Master
+
+do not randomly change it to:
+
+Maalik
+Guru
+Teacher
+
+unless context clearly requires it.
+
+Likewise maintain:
+
+Sister
+Brother
+Senior
+Junior
+Lord
+Emperor
+Miss
+
+according to story context.
+
+
+========================================================
+PROPER NOUNS
+========================================================
+
+Preserve character names accurately.
+
+Examples:
+
+Xiao Tian
+Xiaolong
+Sakura
+Ying
+
+Do not translate names.
+
+Do not invent alternate spellings.
+
+If terminology_context establishes a spelling,
+prefer that spelling.
+
+
+========================================================
+MEANING SAFETY
+========================================================
+
+NEVER:
+
+- invent information
+- remove important information
+- change a question into a statement
+- change a command into a suggestion
+- change a threat into a warning
+- change fear into confidence
+- change respect into disrespect
+- change sarcasm into sincerity
+- add explanations
+- add translator notes
+
+
+========================================================
+EMOTION
+========================================================
+
+Preserve emotional intensity.
+
+If the source is aggressive,
+the translation should feel aggressive.
+
+If the source is gentle,
+the translation should feel gentle.
+
+If the source is frightened,
+the translation should feel frightened.
+
+If the source is humorous,
+preserve the humor naturally.
+
+Do not artificially exaggerate emotion.
+
+
+========================================================
+NATURALNESS VS LITERALNESS
+========================================================
+
+Do NOT translate word-for-word.
+
+Translate meaning naturally.
+
+However:
+
+Do NOT freely rewrite the source.
+
+Do NOT create new metaphors.
+
+Do NOT invent idioms.
+
+Do NOT add cultural references.
+
+Do NOT add Indian memes.
+
+Do NOT add Bollywood references.
+
+Do NOT add internet slang.
+
+The adaptation should feel natural,
+but remain faithful.
+
+
+========================================================
+INCOMPLETE SENTENCES
+========================================================
+
+Some subtitle lines may intentionally be fragments.
+
+Examples:
+
+"Master..."
+
+"Bas ek niwala."
+
+"Ek cultivator jo..."
+
+"Pul paar karne ke liye..."
+
+If the source is intentionally incomplete,
+do NOT artificially complete it.
+
+Use context only to understand the intended meaning.
+
+Do not invent missing information.
+
+
+========================================================
+COMMON MACHINE-TRANSLATION FAILURES TO AVOID
+========================================================
+
+Avoid unnatural phrases such as:
+
+"enlightenment evolve hoti hai"
+
+"avenues evolve ho rahe hain"
+
+"source energy"
+
+"rules ka toofan"
+
+"position par koi khatra"
+
+"badi machhli ka shikaar"
+
+when a more natural equivalent exists.
+
+Prefer contextually natural alternatives such as:
+
+"gyaan praapt hota hai"
+
+"raaste ban rahe hain"
+
+"mool urja"
+
+"niyam-kanoon mein bhuchal"
+
+only when the actual source meaning supports them.
+
+Do not blindly replace these examples.
+Always translate according to actual source meaning.
+
+
+========================================================
+SUBTITLE READABILITY
+========================================================
+
+Keep subtitles concise.
+
+Avoid unnecessary verbosity.
+
+Prefer spoken sentence structures.
+
+Avoid overly literary language unless the character
+or scene genuinely requires it.
+
+Do not unnecessarily repeat words.
+
+Do not use awkward filler.
+
+
+========================================================
+OUTPUT RESTRICTIONS
+========================================================
+
+Translate ONLY:
+
+SUBTITLES TO TRANSLATE
+
+Do NOT translate:
+
+- previous context
+- following context
+- previous translated dialogue
+- terminology context
+
+
+========================================================
+STRICT SUBTITLE STRUCTURE
+========================================================
+
+Do NOT:
+
+- merge subtitles
+- split subtitles
+- skip subtitles
+- add subtitles
+- reorder subtitles
+
+Each input subtitle must have exactly
+one corresponding output subtitle.
+
+Preserve exact order.
+
+
+========================================================
+FINAL SELF-REVIEW
+========================================================
+
+Before returning the final answer, silently review
+every translated subtitle.
+
+Check:
+
+1. Is the meaning correct?
+2. Is the speaker intent correct?
+3. Is the tone correct?
+4. Is the relationship correct?
+5. Is the terminology consistent?
+6. Are names preserved?
+7. Is the Hinglish natural?
+8. Does it sound like spoken Indian dialogue?
+9. Is there any awkward literal translation?
+10. Is there unnecessary English?
+11. Is there unnecessary Hindi?
+12. Is there machine-translation phrasing?
+13. Is the subtitle concise?
+14. Did I accidentally invent anything?
+15. Did I accidentally remove anything?
+16. Did I accidentally turn a question into a statement?
+17. Did I accidentally change a command or threat?
+18. Did I accidentally translate a proper noun incorrectly?
+19. Did I accidentally change an established term?
+20. Did I accidentally output context?
+
+Fix any problem silently before returning the result.
+
+
+========================================================
+STRICT OUTPUT FORMAT
+========================================================
+
+Input subtitle count:
+{len(subtitles)}
+
+Return exactly:
+{len(subtitles)} translated lines.
+
+Format:
+
+1. translated subtitle
+2. translated subtitle
+3. translated subtitle
+
+The numbering MUST start at 1.
+
+The numbering MUST be continuous.
+
+Return ONLY numbered translations.
+
+No Markdown.
+
+No bullets.
+
+No quotes.
+
+No explanations.
+
+No commentary.
+
+No introduction.
+
+No conclusion.
+"""
 
 
     async def translate_batch(
@@ -87,654 +1235,66 @@ class TranslationService:
             | None = None,
     ) -> list[str]:
 
-
         if not subtitles:
 
             return []
 
 
         previous_context = (
-            previous_context
-            or []
+            self._clean_context(
+                previous_context
+            )
         )
 
 
         next_context = (
-            next_context
-            or []
+            self._clean_context(
+                next_context
+            )
         )
 
 
         previous_translated_context = (
-            previous_translated_context
-            or []
+            self._clean_context(
+                previous_translated_context
+            )
         )
 
 
         terminology_context = (
-            terminology_context
-            or []
+            self._clean_context(
+                terminology_context
+            )
         )
 
 
         detected_language = (
-            source_language
+
+            source_language.strip()
+
             if source_language
+            and source_language.strip()
+
             else "unknown"
+
         )
 
 
-        numbered_text = "\n".join(
+        prompt = self._build_prompt(
 
-            f"{index + 1}. {text}"
+            subtitles,
 
-            for index, text
-            in enumerate(
-                subtitles
-            )
+            detected_language,
+
+            previous_context,
+
+            next_context,
+
+            previous_translated_context,
+
+            terminology_context,
+
         )
-
-
-        previous_context_text = (
-
-            "\n".join(
-
-                f"- {text}"
-
-                for text
-                in previous_context
-            )
-
-            if previous_context
-
-            else
-                "No previous source context available."
-        )
-
-
-        next_context_text = (
-
-            "\n".join(
-
-                f"- {text}"
-
-                for text
-                in next_context
-            )
-
-            if next_context
-
-            else
-                "No following source context available."
-        )
-
-
-        previous_translated_context_text = (
-
-            "\n".join(
-
-                f"- {text}"
-
-                for text
-                in previous_translated_context
-            )
-
-            if previous_translated_context
-
-            else
-                "No previous translated dialogue available."
-        )
-
-
-        terminology_context_text = (
-
-            "\n".join(
-
-                f"- {term}"
-
-                for term
-                in terminology_context
-            )
-
-            if terminology_context
-
-            else
-                "No established terminology available."
-        )
-
-
-        prompt = f"""
-You are a senior professional subtitle translator,
-dialogue adapter, and localization expert specializing
-in Chinese cultivation, xianxia, fantasy, immortal,
-martial arts, and mythology-based stories.
-
-Your job is to translate ONLY the subtitles listed under:
-
-SUBTITLES TO TRANSLATE
-
-into extremely natural Indian Hinglish written entirely
-in Roman script.
-
-The final dialogue must sound like professionally localized
-Indian OTT anime, donghua, fantasy, or cultivation subtitles.
-
-It must NOT sound like:
-- Google Translate
-- machine translation
-- textbook Hindi
-- literal word-for-word translation
-- awkward Hindi-English word mixing
-
-
-========================================================
-SOURCE LANGUAGE
-========================================================
-
-{detected_language}
-
-
-========================================================
-PREVIOUS SOURCE CONTEXT
-========================================================
-
-{previous_context_text}
-
-
-========================================================
-SUBTITLES TO TRANSLATE
-========================================================
-
-{numbered_text}
-
-
-========================================================
-FOLLOWING SOURCE CONTEXT
-========================================================
-
-{next_context_text}
-
-
-========================================================
-PREVIOUS TRANSLATED DIALOGUE
-========================================================
-
-The following translations are from earlier subtitles.
-
-Use them ONLY to maintain:
-- character voice
-- terminology consistency
-- naming consistency
-- title consistency
-- relationship consistency
-- sentence style
-- established translation choices
-
-Do NOT blindly copy their sentence structure.
-
-Do NOT output them.
-
-{previous_translated_context_text}
-
-
-========================================================
-ESTABLISHED TERMINOLOGY
-========================================================
-
-The following terms or translation choices have already
-been established in this story.
-
-When the same concept appears again, maintain the same
-terminology unless the source context clearly requires
-a different meaning.
-
-Do NOT randomly alternate between multiple translations
-for the same important cultivation term.
-
-{terminology_context_text}
-
-
-========================================================
-PRIMARY TRANSLATION OBJECTIVE
-========================================================
-
-Your priority order is:
-
-1. Preserve the exact meaning.
-2. Preserve the original intent.
-3. Preserve context and continuity.
-4. Preserve character personality and relationships.
-5. Preserve emotional tone.
-6. Preserve important world-building terminology.
-7. Make the dialogue sound natural to an Indian audience.
-8. Keep the subtitle concise and readable.
-
-Naturalness is extremely important,
-but NEVER change the actual meaning.
-
-
-========================================================
-INDIAN HINGLISH STYLE
-========================================================
-
-Write natural Indian conversational Hinglish
-in Roman script.
-
-Use Hindi naturally.
-
-Use English naturally.
-
-Do NOT force English into every sentence.
-
-Do NOT force Hindi into every sentence.
-
-The result should sound like something an Indian viewer
-would naturally hear in a professionally localized
-OTT fantasy or anime series.
-
-
-GOOD:
-
-"Mujhe nahi pata tum kis baare mein baat kar rahe ho."
-
-"Hum yahan se nikalte hain."
-
-"Chinta mat karo, Master."
-
-"Yeh jagah kaafi khatarnak hai."
-
-"Sirf Chaos Law hi tumhe bacha sakta hai."
-
-
-AVOID:
-
-"Main nahi jaanta hoon ki tum kis cheez ke baare mein baat kar rahe ho."
-
-"Humein is jagah se bahar nikalna avashyak hai."
-
-"Yeh location bahut dangerous hai."
-
-
-========================================================
-CULTIVATION / FANTASY TERMINOLOGY
-========================================================
-
-This is a cultivation/fantasy story.
-
-Preserve important established terms consistently.
-
-Examples of terms that may be preserved in English
-or transliterated according to context:
-
-- Chaos Law
-- Gate of Chaos
-- Sea of Chaos
-- Quasi-Emperor
-- Grand Dao
-- Dao
-- Origin Qi
-- Starry Sky Kun
-- Starry Sky Crocodile
-- Starry Sky Fire Dragon
-- Cultivator
-- Emperor
-- Master
-- Immortal
-- Realm
-- Great World
-
-Do NOT automatically translate every fantasy term.
-
-Do NOT automatically keep every word in English either.
-
-Choose the most natural option based on context.
-
-For example:
-
-Natural:
-"Chaos Law"
-
-Natural:
-"Gate of Chaos"
-
-Natural:
-"Quasi-Emperor"
-
-Natural:
-"Origin Qi"
-
-But normal dialogue should remain natural:
-
-"Hum is pul ko paar kaise karenge?"
-
-"Chinta mat karo, Master."
-
-"Yeh jagah bahut khatarnak hai."
-
-
-========================================================
-TERM CONSISTENCY
-========================================================
-
-If an important term has an established translation,
-reuse it consistently.
-
-For example, do NOT randomly alternate:
-
-"Chaos Law"
-
-"Chaos ka law"
-
-"Chaos ka niyam"
-
-"Chaos ka kanoon"
-
-unless the context genuinely requires a different
-translation.
-
-Prefer one stable terminology choice for important
-world-building concepts.
-
-The same applies to:
-
-- character titles
-- cultivation realms
-- organizations
-- locations
-- techniques
-- special abilities
-- artifacts
-- creatures
-
-
-========================================================
-NATURALNESS RULE
-========================================================
-
-Do not translate mechanically.
-
-Translate the intended meaning.
-
-For example:
-
-Awkward:
-"Realm of gods mein enter kar sakta hoon."
-
-Better:
-"Devtaon ke lok mein ja sakta hoon."
-
-Awkward:
-"3,000 avenues evolve ho rahe hain."
-
-Better:
-"3,000 raaste ban rahe hain."
-
-Awkward:
-"Chaos Sea mein unrestricted access mil gaya."
-
-Better:
-"Chaos Sea mein bina kisi rok-tok ke aa-ja sakta hai."
-
-The exact choice must depend on the source meaning
-and story context.
-
-
-========================================================
-MEANING PRESERVATION
-========================================================
-
-NEVER invent information.
-
-NEVER remove important information.
-
-NEVER change the speaker's intention.
-
-NEVER turn a question into a statement.
-
-NEVER turn a threat into a polite sentence.
-
-NEVER turn fear into confidence.
-
-NEVER turn sarcasm into sincerity.
-
-NEVER turn respect into disrespect.
-
-NEVER turn a command into a suggestion.
-
-NEVER add explanations that are not present in the source.
-
-
-========================================================
-CHARACTER VOICE
-========================================================
-
-Maintain each character's personality.
-
-If the character is:
-- arrogant → sound arrogant
-- calm → sound calm
-- childish → sound childish
-- frightened → sound frightened
-- respectful → sound respectful
-- powerful → sound authoritative
-- sarcastic → preserve sarcasm
-- humorous → preserve humor
-
-Do not make every character sound identical.
-
-
-========================================================
-RELATIONSHIPS AND TITLES
-========================================================
-
-Use context to understand relationships.
-
-Examples:
-
-Master
-Sister
-Brother
-Senior
-Junior
-Emperor
-Lord
-Miss
-Teacher
-
-Do not randomly switch between:
-
-"Master"
-"Guru"
-"Maalik"
-
-for the same relationship.
-
-Maintain established terminology whenever possible.
-
-
-========================================================
-NAMES AND PROPER NOUNS
-========================================================
-
-Preserve character names accurately.
-
-Do not translate or alter names.
-
-Examples:
-
-Xiao Tian
-Xiaolong
-Sakura
-Ying
-
-Keep locations, organizations,
-artifacts, techniques, and special names consistent.
-
-
-========================================================
-EMOTION AND TONE
-========================================================
-
-Preserve:
-
-- fear
-- anger
-- sadness
-- excitement
-- surprise
-- humor
-- sarcasm
-- romance
-- respect
-- disrespect
-- urgency
-- hesitation
-- confidence
-- threats
-
-Do not unnecessarily soften or intensify dialogue.
-
-
-========================================================
-SUBTITLE READABILITY
-========================================================
-
-Keep dialogue concise.
-
-Do not unnecessarily expand short dialogue.
-
-Prefer natural spoken sentences.
-
-Avoid overly long literary sentences.
-
-The viewer should be able to read the subtitle comfortably
-while watching the scene.
-
-
-========================================================
-AVOID UNNECESSARY FILLER
-========================================================
-
-Avoid excessive use of:
-
-"matlab"
-"yaar"
-"bhai"
-"actually"
-"basically"
-"like"
-
-Use them only when they genuinely fit the character
-and original dialogue.
-
-
-========================================================
-DO NOT OVER-LOCALIZE
-========================================================
-
-Do not add:
-
-- Indian memes
-- Bollywood references
-- modern internet slang
-- culturally unrelated jokes
-- extra comedy
-- invented idioms
-
-unless the source itself contains equivalent humor
-that genuinely requires adaptation.
-
-
-========================================================
-CONTEXT RULE
-========================================================
-
-Previous and following source subtitles are provided
-ONLY to understand:
-
-- who is speaking
-- who a pronoun refers to
-- relationships
-- continuity
-- implied meaning
-- emotional state
-- references
-- jokes
-- sarcasm
-
-NEVER translate the context subtitles.
-
-NEVER output the context subtitles.
-
-Previous translated dialogue is provided ONLY for
-translation consistency.
-
-NEVER output previous translated dialogue.
-
-
-========================================================
-STRICT SUBTITLE RULES
-========================================================
-
-Translate ONLY:
-
-SUBTITLES TO TRANSLATE
-
-Do NOT merge subtitles.
-
-Do NOT split subtitles.
-
-Do NOT skip subtitles.
-
-Do NOT add subtitles.
-
-Each input subtitle must have exactly one output subtitle.
-
-Preserve the exact input order.
-
-Preserve exact numbering.
-
-Return exactly one numbered line for every input subtitle.
-
-Do NOT use Markdown.
-
-Do NOT use bullet points.
-
-Do NOT use quotation marks.
-
-Do NOT add explanations.
-
-Do NOT add commentary.
-
-Do NOT add introductory text.
-
-Do NOT add concluding text.
-
-
-========================================================
-OUTPUT FORMAT
-========================================================
-
-Input subtitle count:
-{len(subtitles)}
-
-You MUST return exactly:
-{len(subtitles)} translated lines.
-
-Format:
-
-1. translated subtitle
-2. translated subtitle
-3. translated subtitle
-
-Continue sequentially.
-
-The numbering MUST start at 1.
-
-The numbering MUST be continuous.
-
-Return ONLY the numbered translations.
-"""
 
 
         payload = {
@@ -761,206 +1321,221 @@ Return ONLY the numbered translations.
             "generationConfig": {
 
                 "temperature":
-                    0.35,
+                    0.20,
+
+                "topP":
+                    0.90,
+
+                "topK":
+                    40,
 
             },
 
         }
 
 
-        url = (
+        response = None
 
-            f"{self.base_url}/"
 
-            f"{self.model}:generateContent"
+        max_attempts = max(
 
-            f"?key={self.api_key}"
+            1,
+
+            int(
+                settings.MAX_RETRIES
+            ),
 
         )
 
 
-        response = None
-
-
         for attempt in range(
-            settings.MAX_RETRIES
+            max_attempts
         ):
 
+            can_continue = (
 
-            if (
-                job_id
-                and wait_if_paused
-            ):
+                await self
+                ._wait_until_can_continue(
 
-                can_continue = (
-                    await wait_if_paused(
-                        job_id
-                    )
+                    job_id,
+
+                    wait_if_paused,
+
+                    is_cancelled,
+
                 )
 
-
-                if not can_continue:
-
-                    return None
+            )
 
 
-            if (
-                job_id
-                and is_cancelled
-            ):
+            if not can_continue:
 
-                if await is_cancelled(
-                    job_id
-                ):
-
-                    return None
+                return None
 
 
-            async with httpx.AsyncClient(
-                timeout=120.0
-            ) as client:
+            try:
 
                 response = (
-                    await client.post(
-                        url,
+
+                    await self._client.post(
+
+                        self.url,
+
                         json=payload,
+
                     )
-                )
-
-
-                print(
-
-                    f"Attempt {attempt + 1}: "
-                    f"Status = "
-                    f"{response.status_code}"
 
                 )
 
 
-            if (
-                response.status_code
-                == 200
-            ):
+            except (
+                httpx.TimeoutException,
+                httpx.NetworkError,
+            ) as error:
 
-                break
+                logger.warning(
 
+                    "Translation request failed "
+                    "on attempt %s/%s: %s",
 
-            if (
-                response.status_code
-                == 429
-            ):
+                    attempt + 1,
 
-                retry_seconds = 30
+                    max_attempts,
 
+                    error,
 
-                try:
-
-                    error_json = (
-                        response.json()
-                    )
+                )
 
 
-                    details = (
+                if (
+                    attempt
+                    >= max_attempts - 1
+                ):
 
-                        error_json
-                        .get(
-                            "error",
-                            {}
-                        )
-                        .get(
-                            "details",
-                            []
-                        )
+                    raise RuntimeError(
 
-                    )
+                        "Gemini API request failed "
+                        "after maximum retries."
+
+                    ) from error
 
 
-                    for item in details:
+                retry_seconds = min(
 
-                        retry_delay = (
-                            item.get(
-                                "retryDelay"
-                            )
-                        )
+                    30,
 
+                    2 ** attempt,
 
-                        if retry_delay:
-
-                            retry_seconds = int(
-
-                                re.findall(
-                                    r"\d+",
-                                    retry_delay,
-                                )[0]
-
-                            )
-
-                            break
-
-
-                except Exception:
-
-                    pass
-
-
-                retry_message = (
-                    "Gemini quota exceeded. "
-                    "Automatically retrying..."
                 )
 
 
                 if on_retry:
 
                     await on_retry(
+
                         retry_seconds,
-                        retry_message,
+
+                        "Temporary network error. "
+                        "Automatically retrying...",
+
                     )
 
 
-                remaining = (
-                    retry_seconds
+                if not await self._sleep_with_control(
+
+                    retry_seconds,
+
+                    job_id,
+
+                    wait_if_paused,
+
+                    is_cancelled,
+
+                ):
+
+                    return None
+
+
+                continue
+
+
+            logger.info(
+
+                "Translation attempt %s/%s: HTTP %s",
+
+                attempt + 1,
+
+                max_attempts,
+
+                response.status_code,
+
+            )
+
+
+            if response.status_code == 200:
+
+                break
+
+
+            if self._is_retryable_status(
+
+                response.status_code
+
+            ):
+
+                retry_seconds = (
+
+                    self
+                    ._extract_retry_seconds(
+                        response
+                    )
+
                 )
 
 
-                while remaining > 0:
+                if response.status_code == 429:
 
-                    if (
-                        job_id
-                        and is_cancelled
-                    ):
+                    retry_message = (
 
-                        if await is_cancelled(
-                            job_id
-                        ):
+                        "Gemini quota or rate limit "
+                        "reached. Automatically retrying..."
 
-                            return None
+                    )
 
+                else:
 
-                    if (
-                        job_id
-                        and wait_if_paused
-                    ):
+                    retry_message = (
 
-                        can_continue = (
+                        "Temporary Gemini service "
+                        "error. Automatically retrying..."
 
-                            await wait_if_paused(
-                                job_id
-                            )
-
-                        )
-
-
-                        if not can_continue:
-
-                            return None
-
-
-                    await asyncio.sleep(
-                        1
                     )
 
 
-                    remaining -= 1
+                if on_retry:
+
+                    await on_retry(
+
+                        retry_seconds,
+
+                        retry_message,
+
+                    )
+
+
+                if not await self._sleep_with_control(
+
+                    retry_seconds,
+
+                    job_id,
+
+                    wait_if_paused,
+
+                    is_cancelled,
+
+                ):
+
+                    return None
 
 
                 continue
@@ -978,21 +1553,32 @@ Return ONLY the numbered translations.
 
 
         if (
+
             response is None
+
             or response.status_code != 200
+
         ):
 
             last_status = (
+
                 response.status_code
+
                 if response
+
                 else "No Response"
+
             )
 
 
             last_response = (
+
                 response.text
+
                 if response
+
                 else "No Response"
+
             )
 
 
@@ -1008,9 +1594,17 @@ Return ONLY the numbered translations.
             )
 
 
-        data = (
-            response.json()
-        )
+        try:
+
+            data = response.json()
+
+        except ValueError as error:
+
+            raise RuntimeError(
+
+                "Gemini returned invalid JSON."
+
+            ) from error
 
 
         try:
@@ -1018,9 +1612,13 @@ Return ONLY the numbered translations.
             output = (
 
                 data["candidates"][0]
+
                 ["content"]
+
                 ["parts"][0]
+
                 ["text"]
+
                 .strip()
 
             )
@@ -1034,93 +1632,84 @@ Return ONLY the numbered translations.
 
             raise RuntimeError(
 
-                "Invalid response received "
-                "from Gemini API."
+                "Invalid translation response "
+                "received from Gemini API."
 
             ) from error
 
 
-        translated = []
+        return self._parse_translation_output(
+
+            output,
+
+            len(subtitles),
+
+        )
 
 
-        expected_number = 1
+    async def _sleep_with_control(
+
+        self,
+
+        seconds: int,
+
+        job_id: str | None,
+
+        wait_if_paused:
+            Callable[
+                [str],
+                Awaitable[bool],
+            ]
+            | None,
+
+        is_cancelled:
+            Callable[
+                [str],
+                Awaitable[bool],
+            ]
+            | None,
+
+    ) -> bool:
+
+        remaining = max(
+
+            0,
+
+            int(seconds),
+
+        )
 
 
-        for line in output.splitlines():
+        while remaining > 0:
 
-            line = line.strip()
+            can_continue = (
 
+                await self
+                ._wait_until_can_continue(
 
-            if not line:
+                    job_id,
 
-                continue
+                    wait_if_paused,
 
-
-            match = re.match(
-                r"^(\d+)\.\s*(.*)$",
-                line,
-            )
-
-
-            if not match:
-
-                continue
-
-
-            number = int(
-                match.group(1)
-            )
-
-            text = (
-                match.group(2)
-                .strip()
-            )
-
-
-            if (
-                number
-                != expected_number
-            ):
-
-                raise ValueError(
-
-                    "Gemini returned invalid "
-                    "subtitle numbering. "
-
-                    f"Expected "
-                    f"{expected_number}, "
-
-                    f"received "
-                    f"{number}."
+                    is_cancelled,
 
                 )
 
-            translated.append(
-                text
             )
 
 
-            expected_number += 1
+            if not can_continue:
+
+                return False
 
 
-        if (
-            len(translated)
-            != len(subtitles)
-        ):
-
-            raise ValueError(
-                "Gemini translation output "
-                "count does not match input "
-                "subtitle count. "
-
-                f"Expected "
-                f"{len(subtitles)}, "
-
-                f"received "
-                f"{len(translated)}."
-
+            await asyncio.sleep(
+                1
             )
-        
-        
-        return translated
-            
+
+
+            remaining -= 1
+
+
+        return True
+  
