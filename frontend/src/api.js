@@ -1,10 +1,38 @@
 const API_BASE_URL =
   "https://ultimate-ai-translator-v2.onrender.com";
 
-export async function uploadSrt(file, batchSize) {
+
+async function parseResponse(response, fallbackMessage) {
+  let data = {};
+
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.detail ||
+      data.message ||
+      fallbackMessage
+    );
+  }
+
+  return data;
+}
+
+
+export async function uploadSrt(
+  file,
+  batchSize
+) {
   const formData = new FormData();
 
-  formData.append("file", file);
+  formData.append(
+    "file",
+    file
+  );
 
   const response = await fetch(
     `${API_BASE_URL}/api/upload?batch_size=${batchSize}`,
@@ -14,38 +42,43 @@ export async function uploadSrt(file, batchSize) {
     }
   );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      data.detail || "Upload failed."
-    );
-  }
-
-  return data;
+  return await parseResponse(
+    response,
+    "Upload failed."
+  );
 }
 
-export async function getJobStatus(jobId) {
+
+export async function getJobStatus(
+  jobId
+) {
   const response = await fetch(
-    `${API_BASE_URL}/api/jobs/${jobId}`
+    `${API_BASE_URL}/api/jobs/${jobId}`,
+    {
+      method: "GET",
+      cache: "no-store",
+    }
   );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      data.detail || "Status failed."
-    );
-  }
-
-  return data;
+  return await parseResponse(
+    response,
+    "Unable to get job status."
+  );
 }
 
-export function getDownloadUrl(jobId) {
-  return `${API_BASE_URL}/api/jobs/${jobId}/download`;
+
+export function getDownloadUrl(
+  jobId
+) {
+  return (
+    `${API_BASE_URL}/api/jobs/${jobId}/download`
+  );
 }
 
-export async function cancelJob(jobId) {
+
+export async function cancelJob(
+  jobId
+) {
   const response = await fetch(
     `${API_BASE_URL}/api/jobs/${jobId}/cancel`,
     {
@@ -56,20 +89,16 @@ export async function cancelJob(jobId) {
     }
   );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      data.detail ||
-      data.message ||
-      "Unable to cancel translation job."
-    );
-  }
-
-  return data;
+  return await parseResponse(
+    response,
+    "Unable to cancel translation job."
+  );
 }
 
-export async function pauseJob(jobId) {
+
+export async function pauseJob(
+  jobId
+) {
   const response = await fetch(
     `${API_BASE_URL}/api/jobs/${jobId}/pause`,
     {
@@ -80,21 +109,16 @@ export async function pauseJob(jobId) {
     }
   );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      data.detail ||
-      data.message ||
-      "Unable to pause translation job."
-    );
-  }
-
-  return data;
+  return await parseResponse(
+    response,
+    "Unable to pause translation job."
+  );
 }
 
 
-export async function resumeJob(jobId) {
+export async function resumeJob(
+  jobId
+) {
   const response = await fetch(
     `${API_BASE_URL}/api/jobs/${jobId}/resume`,
     {
@@ -105,15 +129,8 @@ export async function resumeJob(jobId) {
     }
   );
 
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      data.detail ||
-      data.message ||
-      "Unable to resume translation job."
-    );
-  }
-
-  return data;
+  return await parseResponse(
+    response,
+    "Unable to resume translation job."
+  );
 }
