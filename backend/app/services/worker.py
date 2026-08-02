@@ -102,6 +102,22 @@ async def is_job_cancelled(
 
         return status == "cancelled"
 
+async def is_job_paused(
+    job_id: str,
+) -> bool:
+
+    async with SessionLocal() as db:
+
+        result = await db.execute(
+            select(Job.status).where(
+                Job.id == job_id
+            )
+        )
+
+        status = result.scalar_one_or_none()
+
+        return status == "paused"
+
 
 async def process_translation_job(
     job_id: str,
