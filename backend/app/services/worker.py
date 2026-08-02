@@ -102,21 +102,29 @@ async def is_job_cancelled(
 
         return status == "cancelled"
 
-async def is_job_paused(
+async def wait_if_job_paused(
     job_id: str,
 ) -> bool:
 
-    async with SessionLocal() as db:
+    while True:
 
-        result = await db.execute(
-            select(Job.status).where(
-                Job.id == job_id
+        async with SessionLocal() as db:
+
+            result = await db.execute(
+                select(Job.status).where(
+                    Job.id == job_id
+                )
             )
-        )
 
-        status = result.scalar_one_or_none()
+            status = result.scalar_one_or_none()
 
-        return status == "paused"
+        if status == "cancelled":
+            return False
+
+        if status != "paused":
+            return True
+
+        await asyncio.sleep(1)
 
 
 async def process_translation_job(
@@ -233,6 +241,15 @@ async def process_translation_job(
 
                 return None
 
+                if not await wait_if_job_paused(job_id):
+
+                    logger.info(
+                        "Job %s was cancelled while paused.",
+                        job_id,
+                    )
+
+                    return None
+
             end = min(
                 start + batch_size,
                 total,
@@ -264,6 +281,15 @@ async def process_translation_job(
             )
 
             batch_result = None
+
+            if not await wait_if_job_paused(job_id):
+
+                logger.info(
+                    "Job %s was cancelled while waiting to process batch.",
+                    job_id,
+                )
+
+                return None
 
             batch_result = await translator.translate_batch(
                 current_batch,
