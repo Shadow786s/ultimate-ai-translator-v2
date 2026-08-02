@@ -124,6 +124,118 @@ OUTPUT_DIR = Path(
     "/tmp/ultimate-ai-translator/outputs"
 )
 
+@router.post("/jobs/{job_id}/pause")
+async def pause_translation_job(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+
+    result = await db.execute(
+        select(Job).where(
+            Job.id == job_id
+        )
+    )
+
+    job = result.scalar_one_or_none()
+
+    if job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found.",
+        )
+
+    if job.status == "completed":
+        raise HTTPException(
+            status_code=400,
+            detail="Translation job is already completed.",
+        )
+
+    if job.status == "failed":
+        raise HTTPException(
+            status_code=400,
+            detail="Translation job has already failed.",
+        )
+
+    if job.status == "cancelled":
+        raise HTTPException(
+            status_code=400,
+            detail="Translation job is already cancelled.",
+        )
+
+    if job.status == "paused":
+        return {
+            "success": True,
+            "message": "Translation job is already paused.",
+            "job_id": job.id,
+            "status": job.status,
+        }
+
+    job.status = "paused"
+
+    await db.commit()
+
+    return {
+        "success": True,
+        "message": "Translation job paused.",
+        "job_id": job.id,
+        "status": job.status,
+    }
+
+
+@router.post("/jobs/{job_id}/resume")
+async def resume_translation_job(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+
+    result = await db.execute(
+        select(Job).where(
+            Job.id == job_id
+        )
+    )
+
+    job = result.scalar_one_or_none()
+
+    if job is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Job not found.",
+        )
+
+    if job.status == "completed":
+        raise HTTPException(
+            status_code=400,
+            detail="Translation job is already completed.",
+        )
+
+    if job.status == "failed":
+        raise HTTPException(
+            status_code=400,
+            detail="Translation job has already failed.",
+        )
+
+    if job.status == "cancelled":
+        raise HTTPException(
+            status_code=400,
+            detail="Translation job is already cancelled.",
+        )
+
+    if job.status != "paused":
+        raise HTTPException(
+            status_code=400,
+            detail="Translation job is not paused.",
+        )
+
+    job.status = "processing"
+
+    await db.commit()
+
+    return {
+        "success": True,
+        "message": "Translation job resumed.",
+        "job_id": job.id,
+        "status": job.status,
+    }
 
 @router.get("/jobs/{job_id}/download")
 async def download_translated_srt(
