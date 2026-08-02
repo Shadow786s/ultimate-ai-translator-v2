@@ -684,36 +684,73 @@ translateBtn.addEventListener(
         };
 
       pauseBtn.onclick =
-        async () => {
+  async () => {
 
-          isPaused =
-            !isPaused;
+    try {
 
-          if (isPaused) {
+      pauseBtn.disabled =
+        true;
 
-            pauseBtn.textContent =
-              "Resume Translation";
+      if (!isPaused) {
 
-            pauseBtn.style.background =
-              "#16a34a";
+        pauseBtn.textContent =
+          "Pausing...";
 
-            jobStatus.textContent =
-              "Translation Paused";
+        const pauseResult =
+          await pauseJob(
+            jobId
+          );
 
-          } else {
+        isPaused =
+          true;
 
-            pauseBtn.textContent =
-              "Pause Translation";
+        pauseBtn.textContent =
+          "Resume Translation";
 
-            pauseBtn.style.background =
-              "#f59e0b";
+        pauseBtn.style.background =
+          "#16a34a";
 
-            jobStatus.textContent =
-              "Translation Resumed";
+        jobStatus.textContent =
+          "Translation Paused";
 
-          }
+      } else {
 
-        };
+        pauseBtn.textContent =
+          "Resuming...";
+
+        const resumeResult =
+          await resumeJob(
+            jobId
+          );
+
+        isPaused =
+          false;
+
+        pauseBtn.textContent =
+          "Pause Translation";
+
+        pauseBtn.style.background =
+          "#f59e0b";
+
+        jobStatus.textContent =
+          "Translation Resumed";
+
+      }
+
+    } catch (error) {
+
+      alert(
+        error.message
+      );
+
+    } finally {
+
+      pauseBtn.disabled =
+        false;
+
+    }
+
+  };
 
       const startTime =
         Date.now();
