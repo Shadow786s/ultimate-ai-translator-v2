@@ -364,6 +364,10 @@ async def process_translation_job(
 
 
         translated_subtitles = []
+        
+        previous_translated_context = []
+
+        terminology_context = []
 
 
         for start in range(
@@ -447,6 +451,8 @@ async def process_translation_job(
                 source_language,
                 previous_context,
                 next_context,
+                previous_translated_context,
+                terminology_context,
                 on_retry=handle_retry,
                 job_id=job_id,
                 wait_if_paused=wait_if_job_paused,
@@ -486,6 +492,9 @@ async def process_translation_job(
                 batch_result
             )
 
+            previous_translated_context = (
+                translated_subtitles[-15:]
+            )
 
             completed = len(
                 translated_subtitles
