@@ -1127,70 +1127,55 @@ translateBtn.addEventListener(
          CANCEL HANDLER
       ========================= */
 
-      cancelBtn.onclick =
-        async () => {
+      pauseBtn.onclick = async () => {
+  if (!jobId) {
+    return;
+  }
 
-          if (
-            !currentJobId ||
-            isCancelling
-          ) {
+  try {
+    pauseBtn.disabled = true;
 
-            return;
+    if (!isPaused) {
+      pauseBtn.textContent = "Pausing...";
 
-          }
+      await pauseJob(jobId);
 
+      isPaused = true;
 
-          try {
+      pauseBtn.textContent = "Resume Translation";
+      pauseBtn.style.background = "#16a34a";
 
-            isCancelling =
-              true;
+      jobStatus.textContent =
+        "Translation Paused — current batch will finish, then translation will pause.";
 
+    } else {
+      pauseBtn.textContent = "Resuming...";
 
-            cancelBtn.disabled =
-              true;
+      await resumeJob(jobId);
 
-            cancelBtn.textContent =
-              "Cancelling...";
+      isPaused = false;
 
+      pauseBtn.textContent = "Pause Translation";
+      pauseBtn.style.background = "#f59e0b";
 
-            pauseBtn.disabled =
-              true;
+      jobStatus.textContent =
+        "Translation Resumed";
+    }
 
+  } catch (error) {
+    console.error("Pause/Resume error:", error);
 
-            await cancelJob(
-              currentJobId
-            );
+    alert(
+      error.message ||
+      "Unable to pause/resume translation."
+    );
 
-
-            jobStatus.textContent =
-              "Cancellation requested...";
-
-
-          } catch (error) {
-
-            isCancelling =
-              false;
-
-
-            cancelBtn.disabled =
-              false;
-
-            cancelBtn.textContent =
-              "Cancel Translation";
-
-
-            pauseBtn.disabled =
-              false;
-
-
-            alert(
-              error.message
-            );
-
-          }
-
-        };
-
+  } finally {
+    pauseBtn.disabled = false;
+  }
+};
+          
+      
 
       /* =========================
          POLLING START
@@ -1235,12 +1220,49 @@ translateBtn.addEventListener(
         const job =
           status.job;
 
+        if (status.job.status === "paused") {
+          isPaused = true;
+
+          pauseBtn.style.display = "block";
+          pauseBtn.disabled = false;
+
+          pauseBtn.textContent =
+            "Resume Translation";
+
+          pauseBtn.style.background =
+            "#16a34a";
+
+          jobStatus.textContent =
+            "Translation Paused";
+
+          etaText.textContent =
+            "ETA: Paused";
+
+          speedText.textContent =
+            "Speed: Paused";
+        }
 
         const currentProgress =
           Number(
             job.progress ||
             0
           );
+
+        if (status.job.status === "processing") {
+          isPaused = false;
+
+          pauseBtn.style.display = "block";
+          pauseBtn.disabled = false;
+
+          pauseBtn.textContent =
+            "Pause Translation";
+
+          pauseBtn.style.background =
+            "#f59e0b";
+
+          jobStatus.textContent =
+            "Translation Processing";
+        }
 
 
         /* =========================
