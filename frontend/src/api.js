@@ -68,3 +68,52 @@ export async function cancelJob(jobId) {
 
   return data;
 }
+
+export async function pauseJob(jobId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/jobs/${jobId}/pause`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data.detail ||
+      data.message ||
+      "Unable to pause translation job."
+    );
+  }
+
+  return data;
+}
+
+
+export async function resumeJob(jobId) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/jobs/${jobId}/resume`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data.detail ||
+      data.message ||
+      "Unable to resume translation job."
+    );
+  }
+
+  return data;
+}
