@@ -241,14 +241,15 @@ async def process_translation_job(
 
                 return None
 
-                if not await wait_if_job_paused(job_id):
+            if not await wait_if_job_paused(job_id):
 
-                    logger.info(
-                        "Job %s was cancelled while paused.",
-                        job_id,
-                    )
+                    
+                logger.info(
+                    "Job %s was cancelled while paused.",
+                    job_id,
+                )
 
-                    return None
+                return None
 
             end = min(
                 start + batch_size,
