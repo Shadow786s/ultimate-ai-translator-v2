@@ -1560,15 +1560,14 @@ Exactly one final translation for every input subtitle.
                     )
 
                     if on_retry:
+                        await on_retry(
 
-                    await on_retry(
+                            retry_seconds,
 
-                        retry_seconds,
+                            "Temporary network error. "
+                            "Automatically retrying...",
 
-                        "Temporary network error. "
-                        "Automatically retrying...",
-
-                    )
+                        )
 
 
                 if not await self._sleep_with_control(
