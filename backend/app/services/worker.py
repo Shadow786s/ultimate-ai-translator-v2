@@ -442,55 +442,37 @@ async def process_translation_job(
             )
 
 
-            batch_result = (
-                await translator.translate_batch(
-
-                    current_batch,
-
-                    source_language,
-
-                    previous_context,
-
-                    next_context,
-
-                    on_retry=
-                        handle_retry,
-
-                    job_id=
-                        job_id,
-
-                    wait_if_paused=
-                        wait_if_job_paused,
-
-                    is_cancelled=
-                        is_job_cancelled,
-                )
+            batch_result = await translator.translate_batch(
+                current_batch,
+                source_language,
+                previous_context,
+                next_context,
+                on_retry=handle_retry,
             )
 
-
             if batch_result is None:
-
-                if await is_job_cancelled(
-                    job_id
-                ):
-
-                    return None
-
-
                 raise RuntimeError(
-                    "Translation batch returned "
-                    "no result."
+                    "Translation batch returned no result."
                 )
 
 
-            # Check cancellation after Gemini
-            if await is_job_cancelled(
-                job_id
-            ):
+            # Check cancellation immediately after batch
+            if await is_job_cancelled(job_id):
 
                 logger.info(
-                    "Job %s cancelled after "
-                    "Gemini response.",
+                    "Job %s was cancelled after Gemini batch.",
+                    job_id,
+                )
+
+                return None
+
+
+            # Wait here if user paused while Gemini
+            # was processing the current batch.
+            if not await wait_if_job_paused(job_id):
+
+                logger.info(
+                    "Job %s was cancelled while waiting after batch.",
                     job_id,
                 )
 
