@@ -321,8 +321,6 @@ class TranslationService:
 
             425,  # Too Early
 
-            429,  # Rate Limit
-
             500,  # Internal Server Error
 
             502,  # Bad Gateway
@@ -556,7 +554,7 @@ class TranslationService:
 
 
         return f"""
-You are a senior subtitle localization expert,
+You are an elite senior subtitle localization expert,
 dialogue adapter, and professional Indian Hinglish
 translator specializing in:
 
@@ -1476,6 +1474,11 @@ No conclusion.
 
                 break
 
+            if response.status_code == 429:
+                raise RuntimeError(
+                    "Gemini quota or rate limit exceeded. "
+                    "Please try again later."
+                )
 
             if self._is_retryable_status(
 
