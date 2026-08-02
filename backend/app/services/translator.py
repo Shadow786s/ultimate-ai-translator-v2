@@ -214,10 +214,6 @@ the subtitles listed under "Subtitles to translate".
                                     retry_delay
                                 )[0]
                             )
-                            retry_seconds = max(
-                                retry_seconds,
-                                30,
-                            )
 
                             break
 
