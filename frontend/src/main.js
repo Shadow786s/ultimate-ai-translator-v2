@@ -712,9 +712,6 @@ if (retrySeconds > 0) {
     retryCountdownValue =
       retrySeconds;
 
-    attemptText.textContent =
-      `Attempt: ${backendAttempt} / ${backendMaxAttempts}`;
-
     if (retryCountdownTimer) {
 
       clearInterval(
