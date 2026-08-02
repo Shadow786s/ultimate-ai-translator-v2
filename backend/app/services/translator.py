@@ -466,24 +466,24 @@ Return only the numbered translations.
             )
 
 
-        if (
-            response is None
-            or response.status_code != 200
-        ):
+        if response is None or response.status_code != 200:
+
+            last_status = (
+                response.status_code
+                if response
+                else "No Response"
+            )
+
+            last_response = (
+                response.text
+                if response
+                else "No Response"
+            )
 
             raise RuntimeError(
-
-                "Gemini API request failed "
-                "after maximum retries.\n"
-
-                f"Last Status: "
-                f"{response.status_code "
-                "if response else 'No Response'}\n"
-
-                f"Response: "
-                f"{response.text "
-                "if response else 'No Response'}"
-
+                "Gemini API request failed after maximum retries.\n"
+                f"Last Status: {last_status}\n"
+                f"Response: {last_response}"
             )
 
 
