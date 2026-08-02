@@ -330,6 +330,25 @@ document.getElementById("root").innerHTML = `
 </div>
 
 <button
+  id="pauseBtn"
+  style="
+    width:100%;
+    margin-top:10px;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    background:#f59e0b;
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    display:none;
+  "
+>
+  Pause Translation
+</button>
+
+<button
   id="cancelBtn"
   style="
     width:100%;
@@ -390,6 +409,9 @@ const speedText =
 const cancelBtn =
   document.getElementById("cancelBtn");
 
+const pauseBtn =
+  document.getElementById("pauseBtn");
+
 const progressBar =
   document.getElementById("progressBar");
 
@@ -418,8 +440,7 @@ const subtitleCount =
 let retryCountdownTimer = null;
 let retryCountdownValue = 0;
 let retryCountdownJobId = null;
-
-
+let isPaused = false;
 
 fileInput.addEventListener(
   "change",
@@ -608,6 +629,15 @@ translateBtn.addEventListener(
       cancelBtn.textContent =
         "Cancel Translation";
 
+      pauseBtn.style.display =
+        "block";
+
+      pauseBtn.disabled =
+        false;
+
+      pauseBtn.textContent =
+        "Pause Translation";
+
       cancelBtn.onclick =
         async () => {
 
@@ -646,6 +676,38 @@ translateBtn.addEventListener(
             alert(
               error.message
             );
+
+          }
+
+        };
+
+      pauseBtn.onclick =
+        async () => {
+
+          isPaused =
+            !isPaused;
+
+          if (isPaused) {
+
+            pauseBtn.textContent =
+              "Resume Translation";
+
+            pauseBtn.style.background =
+              "#16a34a";
+
+            jobStatus.textContent =
+              "Translation Paused";
+
+          } else {
+
+            pauseBtn.textContent =
+              "Pause Translation";
+
+            pauseBtn.style.background =
+              "#f59e0b";
+
+            jobStatus.textContent =
+              "Translation Resumed";
 
           }
 
