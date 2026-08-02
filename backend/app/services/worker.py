@@ -448,6 +448,9 @@ async def process_translation_job(
                 previous_context,
                 next_context,
                 on_retry=handle_retry,
+                job_id=job_id,
+                wait_if_paused=wait_if_job_paused,
+                is_cancelled=is_job_cancelled,
             )
 
             if batch_result is None:
