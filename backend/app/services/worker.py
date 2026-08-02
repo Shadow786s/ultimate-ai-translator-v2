@@ -1,15 +1,24 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
+
+from datetime import (
+    datetime,
+    timedelta,
+)
+
 from pathlib import Path
 
 import srt
+
 from sqlalchemy import select
 
-from app.core.config import settings
 from app.database.session import SessionLocal
+
 from app.models.job import Job
-from app.services.translator import TranslationService
+
+from app.services.translator import (
+    TranslationService,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -19,9 +28,11 @@ UPLOAD_DIR = Path(
     "/tmp/ultimate-ai-translator/uploads"
 )
 
+
 OUTPUT_DIR = Path(
     "/tmp/ultimate-ai-translator/outputs"
 )
+
 
 OUTPUT_DIR.mkdir(
     parents=True,
@@ -42,6 +53,7 @@ async def update_job(
     retry_message: str | None = None,
     clear_retry: bool = False,
 ):
+
     async with SessionLocal() as db:
 
         result = await db.execute(
@@ -52,43 +64,78 @@ async def update_job(
 
         job = result.scalar_one_or_none()
 
+
         if job is None:
             return
 
+
         if status is not None:
+
             job.status = status
 
+
         if completed_items is not None:
-            job.completed_items = completed_items
+
+            job.completed_items = (
+                completed_items
+            )
+
 
         if progress is not None:
+
             job.progress = progress
 
+
         if error_message is not None:
-            job.error_message = error_message
+
+            job.error_message = (
+                error_message
+            )
+
 
         if translation_preview is not None:
-            job.translation_preview = translation_preview
+
+            job.translation_preview = (
+                translation_preview
+            )
+
 
         if retry_seconds is not None:
-            job.retry_seconds = retry_seconds
+
+            job.retry_seconds = (
+                retry_seconds
+            )
+
 
         if retry_until is not None:
-            job.retry_until = retry_until
+
+            job.retry_until = (
+                retry_until
+            )
+
 
         if retry_message is not None:
-            job.retry_message = retry_message
+
+            job.retry_message = (
+                retry_message
+            )
+
 
         if clear_retry:
+
             job.retry_seconds = 0
+
             job.retry_until = None
+
             job.retry_message = None
-        
+
+
         await db.commit()
 
-async def is_job_cancelled(
+
+async def get_job_status(
     job_id: str,
-) -> bool:
+) -> str | None:
 
     async with SessionLocal() as db:
 
@@ -98,9 +145,19 @@ async def is_job_cancelled(
             )
         )
 
-        status = result.scalar_one_or_none()
+        return result.scalar_one_or_none()
 
-        return status == "cancelled"
+
+async def is_job_cancelled(
+    job_id: str,
+) -> bool:
+
+    status = await get_job_status(
+        job_id
+    )
+
+    return status == "cancelled"
+
 
 async def wait_if_job_paused(
     job_id: str,
@@ -108,23 +165,75 @@ async def wait_if_job_paused(
 
     while True:
 
-        async with SessionLocal() as db:
+        status = await get_job_status(
+            job_id
+        )
 
-            result = await db.execute(
-                select(Job.status).where(
-                    Job.id == job_id
+
+        if status == "cancelled":
+
+            return False
+
+
+        if status != "paused":
+
+            return True
+
+
+        await asyncio.sleep(
+            1
+        )
+
+
+async def wait_with_pause_cancel(
+    job_id: str,
+    seconds: int,
+) -> bool:
+
+    remaining = max(
+        0,
+        int(seconds),
+    )
+
+
+    while remaining > 0:
+
+        status = await get_job_status(
+            job_id
+        )
+
+
+        if status == "cancelled":
+
+            return False
+
+
+        if status == "paused":
+
+            resumed = (
+                await wait_if_job_paused(
+                    job_id
                 )
             )
 
-            status = result.scalar_one_or_none()
 
-        if status == "cancelled":
-            return False
+            if not resumed:
 
-        if status != "paused":
-            return True
+                return False
 
-        await asyncio.sleep(1)
+
+            continue
+
+
+        await asyncio.sleep(
+            1
+        )
+
+
+        remaining -= 1
+
+
+    return True
 
 
 async def process_translation_job(
@@ -134,31 +243,45 @@ async def process_translation_job(
     source_language: str | None,
 ):
 
-    total = len(subtitles)
+    total = len(
+        subtitles
+    )
+
 
     if total == 0:
 
         await update_job(
             job_id,
+
             status="failed",
-            error_message="No subtitles found.",
+
+            error_message=
+                "No subtitles found.",
         )
 
         return
+
 
     try:
 
         await update_job(
             job_id,
+
             status="processing",
+
             completed_items=0,
+
             progress=0,
+
+            clear_retry=True,
         )
+
 
         original_file_path = (
             UPLOAD_DIR
             / f"{job_id}.srt"
         )
+
 
         if not original_file_path.exists():
 
@@ -166,9 +289,11 @@ async def process_translation_job(
                 "Original SRT file not found."
             )
 
+
         original_content = (
             original_file_path.read_bytes()
         )
+
 
         try:
 
@@ -187,25 +312,31 @@ async def process_translation_job(
                 )
             )
 
+
         original_subtitles = list(
             srt.parse(
                 original_text
             )
         )
 
-        if len(original_subtitles) != total:
+
+        if (
+            len(original_subtitles)
+            != total
+        ):
 
             raise ValueError(
-                "Original subtitle count does not "
-                "match the translation input count."
+                "Original subtitle count does "
+                "not match translation input count."
             )
 
+
         translator = TranslationService()
+
 
         async def handle_retry(
             retry_seconds: int,
             retry_message: str,
-            
         ):
 
             retry_until = (
@@ -214,17 +345,26 @@ async def process_translation_job(
                     seconds=retry_seconds
                 )
             )
-            
+
+
             await update_job(
                 job_id,
+
                 status="retrying",
-                retry_seconds=retry_seconds,
-                retry_until=retry_until,
-                retry_message=retry_message,
-                
+
+                retry_seconds=
+                    retry_seconds,
+
+                retry_until=
+                    retry_until,
+
+                retry_message=
+                    retry_message,
             )
 
+
         translated_subtitles = []
+
 
         for start in range(
             0,
@@ -232,103 +372,153 @@ async def process_translation_job(
             batch_size,
         ):
 
-            if await is_job_cancelled(job_id):
+            # Check pause/cancel
+            can_continue = (
+                await wait_if_job_paused(
+                    job_id
+                )
+            )
+
+
+            if not can_continue:
 
                 logger.info(
-                    "Job %s was cancelled before processing batch.",
+                    "Job %s cancelled.",
                     job_id,
                 )
 
                 return None
 
-            if not await wait_if_job_paused(job_id):
 
-                    
-                logger.info(
-                    "Job %s was cancelled while paused.",
-                    job_id,
-                )
+            # Make sure job is not cancelled
+            if await is_job_cancelled(
+                job_id
+            ):
 
                 return None
+
 
             end = min(
                 start + batch_size,
                 total,
             )
 
+
             current_batch = subtitles[
                 start:end
             ]
-            
+
+
             context_size = 5
 
+
             previous_context = subtitles[
-                max(0, start - context_size):start
+                max(
+                    0,
+                    start - context_size,
+                ):start
             ]
+
 
             next_context = subtitles[
                 end:min(
-                   total,
-                   end + context_size,
+                    total,
+                    end + context_size,
                 )
             ]
 
+
             logger.info(
-                "Job %s: Processing subtitles %s-%s of %s",
+                "Job %s: Processing subtitles "
+                "%s-%s of %s",
+
                 job_id,
+
                 start + 1,
+
                 end,
+
                 total,
             )
 
-            batch_result = None
 
-            if not await wait_if_job_paused(job_id):
+            batch_result = (
+                await translator.translate_batch(
+
+                    current_batch,
+
+                    source_language,
+
+                    previous_context,
+
+                    next_context,
+
+                    on_retry=
+                        handle_retry,
+
+                    job_id=
+                        job_id,
+
+                    wait_if_paused=
+                        wait_if_job_paused,
+
+                    is_cancelled=
+                        is_job_cancelled,
+                )
+            )
+
+
+            if batch_result is None:
+
+                if await is_job_cancelled(
+                    job_id
+                ):
+
+                    return None
+
+
+                raise RuntimeError(
+                    "Translation batch returned "
+                    "no result."
+                )
+
+
+            # Check cancellation after Gemini
+            if await is_job_cancelled(
+                job_id
+            ):
 
                 logger.info(
-                    "Job %s was cancelled while waiting to process batch.",
+                    "Job %s cancelled after "
+                    "Gemini response.",
                     job_id,
                 )
 
                 return None
 
-            batch_result = await translator.translate_batch(
-                current_batch,
-                source_language,
-                previous_context,
-                next_context,
-                on_retry=handle_retry,
-            )
-
-            if batch_result is None:
-
-                raise RuntimeError(
-                    "Translation batch returned no result."
-                )
 
             translated_subtitles.extend(
                 batch_result
             )
 
-            if await is_job_cancelled(job_id):
-
-                logger.info(
-                    "Job %s was cancelled after batch completion.",
-                    job_id,
-                )
-
-                return None
 
             completed = len(
                 translated_subtitles
             )
 
-            translation_preview = "\n".join(
-                f"{index + 1}. {text}"
-                for index, text in enumerate(
-                    translated_subtitles
+
+            translation_preview = (
+                "\n".join(
+
+                    f"{index + 1}. {text}"
+
+                    for index, text
+                    in enumerate(
+                        translated_subtitles
+                    )
                 )
             )
+
 
             progress = int(
                 (
@@ -338,42 +528,67 @@ async def process_translation_job(
                 * 100
             )
 
+
             await update_job(
                 job_id,
+
                 status="processing",
-                completed_items=completed,
-                progress=progress,
-                translation_preview=translation_preview,
-                clear_retry=True,
+
+                completed_items=
+                    completed,
+
+                progress=
+                    progress,
+
+                translation_preview=
+                    translation_preview,
+
+                clear_retry=
+                    True,
             )
 
-        if len(
-            translated_subtitles
-        ) != len(
-            original_subtitles
+
+        if (
+            len(translated_subtitles)
+            != len(original_subtitles)
         ):
 
             raise ValueError(
-                "Translated subtitle count does not "
-                "match original subtitle count."
+                "Translated subtitle count does "
+                "not match original subtitle count."
             )
+
 
         translated_srt_subtitles = []
 
-        for index, original_subtitle in enumerate(
+
+        for (
+            index,
+            original_subtitle
+        ) in enumerate(
             original_subtitles
         ):
 
             translated_srt_subtitles.append(
+
                 srt.Subtitle(
-                    index=original_subtitle.index,
-                    start=original_subtitle.start,
-                    end=original_subtitle.end,
-                    content=translated_subtitles[
-                        index
-                    ],
+
+                    index=
+                        original_subtitle.index,
+
+                    start=
+                        original_subtitle.start,
+
+                    end=
+                        original_subtitle.end,
+
+                    content=
+                        translated_subtitles[
+                            index
+                        ],
                 )
             )
+
 
         translated_srt_content = (
             srt.compose(
@@ -381,35 +596,44 @@ async def process_translation_job(
             )
         )
 
+
         output_file_path = (
             OUTPUT_DIR
             / f"{job_id}.srt"
         )
 
+
         output_file_path.write_text(
             translated_srt_content,
+
             encoding="utf-8",
         )
 
-        logger.info(
-            "Job %s: Translated SRT saved to %s",
-            job_id,
-            output_file_path,
-        )
 
         await update_job(
             job_id,
+
             status="completed",
-            completed_items=total,
-            progress=100,
+
+            completed_items=
+                total,
+
+            progress=
+                100,
+
+            clear_retry=
+                True,
         )
+
 
         logger.info(
             "Job %s completed successfully.",
             job_id,
         )
 
+
         return translated_subtitles
+
 
     except Exception as error:
 
@@ -418,10 +642,32 @@ async def process_translation_job(
             job_id,
         )
 
+
+        current_status = (
+            await get_job_status(
+                job_id
+            )
+        )
+
+
+        # Agar cancellation ke baad
+        # exception aayi hai to failed mat karo.
+        if current_status == "cancelled":
+
+            return None
+
+
         await update_job(
             job_id,
+
             status="failed",
-            error_message=str(error),
+
+            error_message=
+                str(error),
+
+            clear_retry=
+                True,
         )
+
 
         return None
