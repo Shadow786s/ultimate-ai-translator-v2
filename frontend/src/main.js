@@ -496,6 +496,13 @@ let translationStartTime =
     ) || 0
   );
 
+let pausedAt = 0;
+
+let totalPausedSeconds = 0;
+
+let lastCompletedItems = 0;
+
+let lastProgressTime = 0;
 
 /* =========================================================
    RESTORE SAVED UI DATA
@@ -1334,88 +1341,163 @@ async function pollJob(
     }
 
 
-    const elapsedSeconds =
+    /* =========================================================
+   PAUSE-AWARE SPEED + ETA
+========================================================= */
+
+const now =
+  Date.now();
+
+
+/*
+  Backend paused state:
+  timer ko freeze rakho.
+*/
+
+if (
+  job.status === "paused"
+) {
+
+  if (
+    pausedAt === 0
+  ) {
+
+    pausedAt =
+      now;
+
+  }
+
+
+  /*
+    Pause ke waqt current displayed
+    speed aur ETA ko change mat karo.
+  */
+
+} else {
+
+  /*
+    Agar job resume hua hai,
+    pause duration ko total paused time
+    mein add karo.
+  */
+
+  if (
+    pausedAt > 0
+  ) {
+
+    totalPausedSeconds +=
       (
-        Date.now() -
-        translationStartTime
+        now -
+        pausedAt
       ) / 1000;
 
+    pausedAt =
+      0;
 
-    if (
-      completedItems > 0 &&
-      elapsedSeconds > 0
-    ) {
-
-      const speed =
-        completedItems /
-        elapsedSeconds;
+  }
 
 
-      speedText.textContent =
-        "Speed: " +
-        speed.toFixed(2) +
-        " subtitles/sec";
-
-    } else {
-
-      speedText.textContent =
-        "Speed: Calculating...";
-
-    }
+  const elapsedSeconds =
+    Math.max(
+      0,
+      (
+        now -
+        translationStartTime
+      ) / 1000 -
+      totalPausedSeconds
+    );
 
 
-    if (
-      job.status !==
-      "retrying" &&
-      currentProgress > 0
-    ) {
+  /*
+    SPEED
 
-      const estimatedTotalSeconds =
-        elapsedSeconds /
-        (
-          currentProgress /
-          100
-        );
+    Sirf active translation time ko
+    calculate kiya ja raha hai.
+  */
 
+  if (
+    completedItems > 0 &&
+    elapsedSeconds > 0
+  ) {
 
-      const remainingSeconds =
-        Math.max(
-          0,
-          estimatedTotalSeconds -
-          elapsedSeconds
-        );
+    const speed =
+      completedItems /
+      elapsedSeconds;
 
 
-      const minutes =
-        Math.floor(
-          remainingSeconds /
-          60
-        );
+    speedText.textContent =
+      "Speed: " +
+      speed.toFixed(2) +
+      " subtitles/sec";
+
+  } else {
+
+    speedText.textContent =
+      "Speed: Calculating...";
+
+  }
 
 
-      const seconds =
-        Math.floor(
-          remainingSeconds %
-          60
-        );
+  /*
+    ETA
+
+    Pause duration ko elapsed time se
+    exclude kiya gaya hai.
+  */
+
+  if (
+    job.status !== "retrying" &&
+    currentProgress > 0 &&
+    elapsedSeconds > 0
+  ) {
+
+    const estimatedTotalSeconds =
+      elapsedSeconds /
+      (
+        currentProgress /
+        100
+      );
 
 
-      etaText.textContent =
-        `ETA: ${
-          minutes
-        }m ${
-          seconds
-        }s`;
+    const remainingSeconds =
+      Math.max(
+        0,
+        estimatedTotalSeconds -
+        elapsedSeconds
+      );
 
-    } else if (
-      job.status !==
-      "retrying"
-    ) {
 
-      etaText.textContent =
-        "ETA: Calculating...";
+    const minutes =
+      Math.floor(
+        remainingSeconds /
+        60
+      );
 
-    }
+
+    const seconds =
+      Math.floor(
+        remainingSeconds %
+        60
+      );
+
+
+    etaText.textContent =
+      `ETA: ${
+        minutes
+      }m ${
+        seconds
+      }s`;
+
+  } else if (
+    job.status !== "retrying"
+  ) {
+
+    etaText.textContent =
+      "ETA: Calculating...";
+
+  }
+
+}
 
 
     pollTimer =
@@ -1499,6 +1581,8 @@ async function handlePauseResume() {
         activeJobId
       );
 
+      pausedAt =
+        Date.now();
 
       isPaused =
         true;
@@ -1526,6 +1610,20 @@ async function handlePauseResume() {
         activeJobId
       );
 
+      if (
+        pausedAt > 0
+      ) {
+
+        totalPausedSeconds +=
+          (
+            Date.now() -
+            pausedAt
+          ) / 1000;
+
+        pausedAt =
+          0;
+
+      }
 
       isPaused =
         false;
