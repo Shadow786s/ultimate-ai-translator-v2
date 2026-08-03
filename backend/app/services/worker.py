@@ -205,8 +205,14 @@ async def process_translation_job(
         async def handle_retry(
             retry_seconds: int,
             retry_message: str,
-            
         ):
+
+            nonlocal retry_active
+
+            if retry_active:
+                return
+
+            retry_active = True
 
             retry_until = (
                 datetime.utcnow()
@@ -214,17 +220,18 @@ async def process_translation_job(
                     seconds=retry_seconds
                 )
             )
-            
+
             await update_job(
                 job_id,
                 status="retrying",
                 retry_seconds=retry_seconds,
                 retry_until=retry_until,
                 retry_message=retry_message,
-                
             )
 
         translated_subtitles = []
+
+        retry_active = False
 
         for start in range(
             0,
@@ -346,6 +353,8 @@ async def process_translation_job(
                 translation_preview=translation_preview,
                 clear_retry=True,
             )
+
+            retry_active = False
 
         if len(
             translated_subtitles
