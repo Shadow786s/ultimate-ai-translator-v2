@@ -1,4 +1,5 @@
 import asyncio
+import json
 import re
 
 from collections.abc import (
@@ -107,14 +108,11 @@ class TranslationService:
 
 
         numbered_text = "\n".join(
+            f"[SUBTITLE_ID:{index + 1}] {text}"
+            for index, text in enumerate(subtitles)
 
-            f"{index + 1}. {text}"
-
-            for index, text
-            in enumerate(
-                subtitles
-            )
         )
+        
 
 
         previous_context_text = (
@@ -299,16 +297,29 @@ class TranslationService:
 
         40. Do not use quotation marks around translated dialogue.
 
-        41. Return ONLY the numbered translated subtitles.
+        41. Return ONLY the translated subtitles.
 
-        42. The output must contain exactly one numbered line for every input subtitle.
+        42. Every subtitle MUST preserve its exact SUBTITLE_ID.
 
-        43. The numbering must start at 1 and continue sequentially.
+        43. Never skip a SUBTITLE_ID.
 
-        44. Do not include any introductory or concluding text.
+        44. Never merge two subtitle IDs.
 
-        45. Do not mention these instructions in the output.
+        45. Never split one subtitle ID into multiple outputs.
 
+        46. Return exactly one output for every input SUBTITLE_ID.
+   
+        47. If the source subtitle is empty, return an empty translation for that same SUBTITLE_ID.
+
+        48. Do not add any new SUBTITLE_ID.
+
+        49. Do not include introductory or concluding text.
+
+        50. Do not use Markdown.
+
+        51. Do not use bullet points.
+
+        52. Do not mention these instructions in the output.
 
         ========================
         HINGLISH STYLE GUIDE
@@ -380,21 +391,17 @@ class TranslationService:
         NEVER include context text in the final answer.
 
 
-        ========================
-        STRICT OUTPUT FORMAT
-        ========================
-
-        Input subtitles count:
-        {len(subtitles)}
-
-        You MUST return exactly:
-        {len(subtitles)} translated lines.
+        
 
         Format:
 
-        1. translated subtitle
-        2. translated subtitle
-        3. translated subtitle
+        STRICT OUTPUT FORMAT:
+
+        [SUBTITLE_ID:1] translated subtitle
+        [SUBTITLE_ID:2] translated subtitle
+        [SUBTITLE_ID:3] translated subtitle
+
+        Return ONLY these lines.
 
         And so on.
 
@@ -718,90 +725,83 @@ class TranslationService:
             ) from error
 
 
-        translated = []
+                # ---------------------------------------------------------
+        # ROBUST SUBTITLE RESPONSE PARSER
+        # ---------------------------------------------------------
 
+        expected_ids = set(
+            range(1, len(subtitles) + 1)
+        )
 
-        expected_number = 1
+        translations_by_id = {}
 
+        for raw_line in output.splitlines():
 
-        for line in output.splitlines():
-
-            line = line.strip()
-
+            line = raw_line.strip()
 
             if not line:
-
                 continue
 
-
-            if "." not in line:
-
-                continue
-
-
-            prefix, text = (
-                line.split(
-                    ".",
-                    1,
-                )
+            # Accept:
+            # [SUBTITLE_ID:1] Hello
+            # [SUBTITLE_ID:2] How are you?
+            match = re.match(
+                r"^\[SUBTITLE_ID:(\d+)\]\s*(.*)$",
+                line,
+                flags=re.DOTALL,
             )
 
-
-            if not prefix.strip().isdigit():
-
+            if not match:
                 continue
 
-
-            number = int(
-                prefix.strip()
+            subtitle_id = int(
+                match.group(1)
             )
 
+            translated_text = (
+                match.group(2).strip()
+            )
 
-            if (
-                number
-                != expected_number
-            ):
+            # Ignore unexpected IDs.
+            if subtitle_id not in expected_ids:
+                continue
+
+            # Duplicate ID is invalid.
+            if subtitle_id in translations_by_id:
 
                 raise ValueError(
-
-                    "Gemini returned invalid "
-                    "subtitle numbering. "
-
-                    f"Expected "
-                    f"{expected_number}, "
-
-                    f"received "
-                    f"{number}."
-
+                    "Gemini returned duplicate "
+                    f"subtitle ID: {subtitle_id}"
                 )
 
+            translations_by_id[
+                subtitle_id
+            ] = translated_text
 
-            translated.append(
-                text.strip()
-            )
+        received_ids = set(
+            translations_by_id.keys()
+        )
 
+        missing_ids = sorted(
+            expected_ids - received_ids
+        )
 
-            expected_number += 1
-
-
-        if (
-            len(translated)
-            != len(subtitles)
-        ):
+        if missing_ids:
 
             raise ValueError(
-
-                "Gemini translation output "
-                "count does not match input "
-                "subtitle count. "
-
-                f"Expected "
-                f"{len(subtitles)}, "
-
-                f"received "
-                f"{len(translated)}."
-
+                "Gemini translation output is missing "
+                f"subtitle IDs: {missing_ids}. "
+                f"Expected {len(expected_ids)} subtitles, "
+                f"received {len(received_ids)}."
             )
 
+        # Rebuild output in the exact original order.
+        translated = [
+            translations_by_id[index]
+            for index in range(
+                1,
+                len(subtitles) + 1,
+            )
+        ]
 
         return translated
