@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+import logging
 
 from collections.abc import (
     Awaitable,
@@ -45,7 +46,7 @@ class TranslationService:
         )
 
 
-    async def translate_batch(
+    async def translate_batch_once(
         self,
         subtitles: list[str],
         source_language: str | None = None,
