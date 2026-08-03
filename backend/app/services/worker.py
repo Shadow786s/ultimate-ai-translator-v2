@@ -217,7 +217,6 @@ async def process_translation_job(
             
             await update_job(
                 job_id,
-                status="retrying",
                 retry_seconds=retry_seconds,
                 retry_until=retry_until,
                 retry_message=retry_message,
