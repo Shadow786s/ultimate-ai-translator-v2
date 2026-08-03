@@ -47,106 +47,126 @@ class TranslationService:
 
     async def translate_batch(
         self,
-
         subtitles: list[str],
-
         source_language: str | None = None,
-
-        previous_context:
-            list[str] | None = None,
-
-        next_context:
-            list[str] | None = None,
-
-        on_retry:
-            Callable[
-                [int, str],
-                Awaitable[None],
-            ]
-            | None = None,
-
+        previous_context: list[str] | None = None,
+        next_context: list[str] | None = None,
+        on_retry=None,
         job_id: str | None = None,
-
-        wait_if_paused:
-            Callable[
-                [str],
-                Awaitable[bool],
-            ]
-            | None = None,
-
-        is_cancelled:
-            Callable[
-                [str],
-                Awaitable[bool],
-            ]
-            | None = None,
-    ) -> list[str]:
-
+        wait_if_paused=None,
+        is_cancelled=None,
+    ) -> list[str] | None:
 
         if not subtitles:
-
             return []
+  
+        max_recovery_attempts = 5
 
-
-        previous_context = (
-            previous_context
-            or []
+        pending = list(
+            enumerate(subtitles)
         )
 
+        final_results = {
+            index: None
+            for index in range(
+                len(subtitles)
+            )
+        }
 
-        next_context = (
-            next_context
-            or []
-        )
+        for recovery_attempt in range(
+            max_recovery_attempts
+        ):
 
+            pending_texts = [
+                text
+                for _, text in pending
+            ]
 
-        detected_language = (
-            source_language
-            if source_language
-            else "unknown"
-        )
+            if not pending_texts:
+                break
 
+            try:
 
-        numbered_text = "\n".join(
-            f"[SUBTITLE_ID:{index + 1}] {text}"
-            for index, text in enumerate(subtitles)
+                result = await self._translate_batch_once(
+                    pending_texts,
+                    source_language,
+                    previous_context,
+                    next_context,
+                    on_retry=on_retry,
+                    job_id=job_id,
+                    wait_if_paused=wait_if_paused,
+                    is_cancelled=is_cancelled,
+                )
+   
+                if result is None:
+                    return None
 
-        )
+                for (
+                    (original_index, _),
+                    translated_text,
+                ) in zip(
+                    pending,
+                    result,
+                ):
+
+                    final_results[
+                        original_index
+                    ] = translated_text
+
+                pending = []
+
+                break
+
+            except ValueError as error:
+
+                logger.warning(
+                    "Translation validation failed "
+                    "on recovery attempt %s/%s: %s",
+                    recovery_attempt + 1,
+                    max_recovery_attempts,
+                    error,
+                )
+
+                # If this is the last attempt,
+                # re-raise the original validation error.
+                if (
+                    recovery_attempt
+                    == max_recovery_attempts - 1
+                ):
+                    raise
+ 
+                # Retry entire batch on first recovery.
+                # Smaller batch on later recovery.
+                if recovery_attempt == 0:
+
+                    continue
+
+                midpoint = max(
+                    1,
+                    len(pending) // 2,
+                )
+
+                pending = pending[
+                    :midpoint
+                ]
+
+        if any(
+            value is None
+            for value in final_results.values()
+        ):
+
+            raise ValueError(
+                "Translation recovery failed. "
+                "Some subtitles could not be translated."
+            )
+
+        return [
+            final_results[index]
+            for index in range(
+                len(subtitles)
+            )
+        ]
         
-
-
-        previous_context_text = (
-
-            "\n".join(
-
-                f"- {text}"
-
-                for text
-                in previous_context
-            )
-
-            if previous_context
-
-            else
-                "No previous context available."
-        )
-
-
-        next_context_text = (
-
-            "\n".join(
-
-                f"- {text}"
-
-                for text
-                in next_context
-            )
-
-            if next_context
-
-            else
-                "No following context available."
-        )
 
 
         prompt = f"""
