@@ -1481,65 +1481,28 @@ No conclusion.
                 )
 
             if self._is_retryable_status(
-
                 response.status_code
-
             ):
-
                 retry_seconds = (
-
-                    self
-                    ._extract_retry_seconds(
+                    self._extract_retry_seconds(
                         response
                     )
-
                 )
 
-
-                if response.status_code == 429:
-
-                    retry_message = (
-
-                        "Gemini quota or rate limit "
-                        "reached. Automatically retrying..."
-
-                    )
-
-                else:
-
-                    retry_message = (
-
-                        "Temporary Gemini service "
-                        "error. Automatically retrying..."
-
-                    )
-
-
                 if on_retry:
-
                     await on_retry(
-
                         retry_seconds,
-
-                        retry_message,
-
+                        "Temporary Gemini service error. "
+                       "Automatically retrying...",
                     )
-
 
                 if not await self._sleep_with_control(
-
                     retry_seconds,
-
                     job_id,
-
                     wait_if_paused,
-
                     is_cancelled,
-
                 ):
-
                     return None
-
 
                 continue
 
