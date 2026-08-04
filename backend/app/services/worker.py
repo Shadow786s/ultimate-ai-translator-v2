@@ -42,6 +42,7 @@ async def update_job(
     retry_message: str | None = None,
     clear_retry: bool = False,
 ):
+
     async with SessionLocal() as db:
 
         result = await db.execute(
@@ -80,11 +81,15 @@ async def update_job(
             job.retry_message = retry_message
 
         if clear_retry:
+
             job.retry_seconds = 0
+
             job.retry_until = None
+
             job.retry_message = None
-        
+
         await db.commit()
+
 
 async def is_job_cancelled(
     job_id: str,
@@ -98,9 +103,12 @@ async def is_job_cancelled(
             )
         )
 
-        status = result.scalar_one_or_none()
+        status = (
+            result.scalar_one_or_none()
+        )
 
         return status == "cancelled"
+
 
 async def wait_if_job_paused(
     job_id: str,
@@ -116,7 +124,9 @@ async def wait_if_job_paused(
                 )
             )
 
-            status = result.scalar_one_or_none()
+            status = (
+                result.scalar_one_or_none()
+            )
 
         if status == "cancelled":
             return False
@@ -124,7 +134,9 @@ async def wait_if_job_paused(
         if status != "paused":
             return True
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(
+            1
+        )
 
 
 async def process_translation_job(
@@ -134,7 +146,9 @@ async def process_translation_job(
     source_language: str | None,
 ):
 
-    total = len(subtitles)
+    total = len(
+        subtitles
+    )
 
     if total == 0:
 
@@ -153,6 +167,7 @@ async def process_translation_job(
             status="processing",
             completed_items=0,
             progress=0,
+            clear_retry=True,
         )
 
         original_file_path = (
@@ -193,14 +208,25 @@ async def process_translation_job(
             )
         )
 
-        if len(original_subtitles) != total:
+        if (
+            len(original_subtitles)
+            != total
+        ):
 
             raise ValueError(
                 "Original subtitle count does not "
                 "match the translation input count."
             )
 
-        translator = TranslationService()
+        translator = (
+            TranslationService()
+        )
+
+        retry_active = False
+
+        # =====================================================
+        # RETRY START CALLBACK
+        # =====================================================
 
         async def handle_retry(
             retry_seconds: int,
@@ -208,9 +234,6 @@ async def process_translation_job(
         ):
 
             nonlocal retry_active
-
-            if retry_active:
-                return
 
             retry_active = True
 
@@ -229,9 +252,52 @@ async def process_translation_job(
                 retry_message=retry_message,
             )
 
+            logger.warning(
+                "Job %s: Gemini rate limit reached. "
+                "Retrying in %s seconds.",
+                job_id,
+                retry_seconds,
+            )
+
+        # =====================================================
+        # LIVE RETRY COUNTDOWN CALLBACK
+        # =====================================================
+
+        async def handle_retry_countdown(
+            remaining_seconds: int,
+            retry_message: str,
+        ):
+
+            nonlocal retry_active
+
+            retry_active = True
+
+            retry_until = (
+                datetime.utcnow()
+                + timedelta(
+                    seconds=max(
+                        0,
+                        remaining_seconds,
+                    )
+                )
+            )
+
+            await update_job(
+                job_id,
+                status="retrying",
+                retry_seconds=max(
+                    0,
+                    remaining_seconds,
+                ),
+                retry_until=retry_until,
+                retry_message=retry_message,
+            )
+
         translated_subtitles = []
 
-        retry_active = False
+        # =====================================================
+        # PROCESS BATCHES
+        # =====================================================
 
         for start in range(
             0,
@@ -239,18 +305,30 @@ async def process_translation_job(
             batch_size,
         ):
 
-            if await is_job_cancelled(job_id):
+            # -------------------------------------------------
+            # Cancellation check
+            # -------------------------------------------------
+
+            if await is_job_cancelled(
+                job_id
+            ):
 
                 logger.info(
-                    "Job %s was cancelled before processing batch.",
+                    "Job %s was cancelled before "
+                    "processing batch.",
                     job_id,
                 )
 
                 return None
 
-            if not await wait_if_job_paused(job_id):
+            # -------------------------------------------------
+            # Pause check
+            # -------------------------------------------------
 
-                    
+            if not await wait_if_job_paused(
+                job_id
+            ):
+
                 logger.info(
                     "Job %s was cancelled while paused.",
                     job_id,
@@ -266,48 +344,63 @@ async def process_translation_job(
             current_batch = subtitles[
                 start:end
             ]
-            
+
             context_size = 5
 
             previous_context = subtitles[
-                max(0, start - context_size):start
+                max(
+                    0,
+                    start - context_size,
+                ):start
             ]
 
             next_context = subtitles[
                 end:min(
-                   total,
-                   end + context_size,
+                    total,
+                    end + context_size,
                 )
             ]
 
             logger.info(
-                "Job %s: Processing subtitles %s-%s of %s",
+                "Job %s: Processing subtitles "
+                "%s-%s of %s",
                 job_id,
                 start + 1,
                 end,
                 total,
             )
 
-            batch_result = None
+            # -------------------------------------------------
+            # Translate current batch
+            # -------------------------------------------------
 
-            if not await wait_if_job_paused(job_id):
-
-                logger.info(
-                    "Job %s was cancelled while waiting to process batch.",
-                    job_id,
+            batch_result = (
+                await translator.translate_batch(
+                    current_batch,
+                    source_language,
+                    previous_context,
+                    next_context,
+                    on_retry=handle_retry,
+                    on_retry_countdown=(
+                        handle_retry_countdown
+                    ),
+                    job_id=job_id,
+                    wait_if_paused=(
+                        wait_if_job_paused
+                    ),
+                    is_cancelled=(
+                        is_job_cancelled
+                    ),
                 )
-
-                return None
-
-            batch_result = await translator.translate_batch(
-                current_batch,
-                source_language,
-                previous_context,
-                next_context,
-                on_retry=handle_retry,
             )
 
             if batch_result is None:
+
+                if await is_job_cancelled(
+                    job_id
+                ):
+
+                    return None
 
                 raise RuntimeError(
                     "Translation batch returned no result."
@@ -317,10 +410,17 @@ async def process_translation_job(
                 batch_result
             )
 
-            if await is_job_cancelled(job_id):
+            # -------------------------------------------------
+            # Cancellation after batch
+            # -------------------------------------------------
+
+            if await is_job_cancelled(
+                job_id
+            ):
 
                 logger.info(
-                    "Job %s was cancelled after batch completion.",
+                    "Job %s was cancelled after "
+                    "batch completion.",
                     job_id,
                 )
 
@@ -330,10 +430,12 @@ async def process_translation_job(
                 translated_subtitles
             )
 
-            translation_preview = "\n".join(
-                f"{index + 1}. {text}"
-                for index, text in enumerate(
-                    translated_subtitles
+            translation_preview = (
+                "\n".join(
+                    f"{index + 1}. {text}"
+                    for index, text in enumerate(
+                        translated_subtitles
+                    )
                 )
             )
 
@@ -345,21 +447,31 @@ async def process_translation_job(
                 * 100
             )
 
+            # -------------------------------------------------
+            # Batch completed successfully.
+            # Clear retry state.
+            # -------------------------------------------------
+
+            retry_active = False
+
             await update_job(
                 job_id,
                 status="processing",
                 completed_items=completed,
                 progress=progress,
-                translation_preview=translation_preview,
+                translation_preview=(
+                    translation_preview
+                ),
                 clear_retry=True,
             )
 
-            retry_active = False
+        # =====================================================
+        # FINAL COUNT VALIDATION
+        # =====================================================
 
-        if len(
-            translated_subtitles
-        ) != len(
-            original_subtitles
+        if (
+            len(translated_subtitles)
+            != len(original_subtitles)
         ):
 
             raise ValueError(
@@ -367,20 +479,35 @@ async def process_translation_job(
                 "match original subtitle count."
             )
 
+        # =====================================================
+        # BUILD FINAL SRT
+        # =====================================================
+
         translated_srt_subtitles = []
 
-        for index, original_subtitle in enumerate(
+        for (
+            index,
+            original_subtitle,
+        ) in enumerate(
             original_subtitles
         ):
 
             translated_srt_subtitles.append(
                 srt.Subtitle(
-                    index=original_subtitle.index,
-                    start=original_subtitle.start,
-                    end=original_subtitle.end,
-                    content=translated_subtitles[
-                        index
-                    ],
+                    index=(
+                        original_subtitle.index
+                    ),
+                    start=(
+                        original_subtitle.start
+                    ),
+                    end=(
+                        original_subtitle.end
+                    ),
+                    content=(
+                        translated_subtitles[
+                            index
+                        ]
+                    ),
                 )
             )
 
@@ -406,11 +533,16 @@ async def process_translation_job(
             output_file_path,
         )
 
+        # =====================================================
+        # JOB COMPLETED
+        # =====================================================
+
         await update_job(
             job_id,
             status="completed",
             completed_items=total,
             progress=100,
+            clear_retry=True,
         )
 
         logger.info(
@@ -430,7 +562,10 @@ async def process_translation_job(
         await update_job(
             job_id,
             status="failed",
-            error_message=str(error),
+            error_message=str(
+                error
+            ),
+            clear_retry=True,
         )
 
         return None
