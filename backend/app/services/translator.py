@@ -2,8 +2,6 @@ import asyncio
 import logging
 import re
 
-from collections.abc import Callable, Awaitable
-
 import httpx
 
 from app.core.config import settings
@@ -36,7 +34,7 @@ class TranslationService:
         )
 
     # =========================================================
-    # PUBLIC METHOD
+    # PUBLIC TRANSLATION METHOD
     # =========================================================
 
     async def translate_batch(
@@ -46,6 +44,7 @@ class TranslationService:
         previous_context: list[str] | None = None,
         next_context: list[str] | None = None,
         on_retry=None,
+        on_retry_countdown=None,
         job_id: str | None = None,
         wait_if_paused=None,
         is_cancelled=None,
@@ -60,13 +59,14 @@ class TranslationService:
             previous_context=previous_context,
             next_context=next_context,
             on_retry=on_retry,
+            on_retry_countdown=on_retry_countdown,
             job_id=job_id,
             wait_if_paused=wait_if_paused,
             is_cancelled=is_cancelled,
         )
 
     # =========================================================
-    # RECOVERY / RETRY LOGIC
+    # TRANSLATION RECOVERY
     # =========================================================
 
     async def _translate_with_recovery(
@@ -76,6 +76,7 @@ class TranslationService:
         previous_context: list[str] | None = None,
         next_context: list[str] | None = None,
         on_retry=None,
+        on_retry_countdown=None,
         job_id: str | None = None,
         wait_if_paused=None,
         is_cancelled=None,
@@ -84,15 +85,20 @@ class TranslationService:
         if not subtitles:
             return []
 
-        max_attempts = 3
+        # Validation retries.
+        # These are NOT Gemini quota retries.
+        max_validation_attempts = 3
 
         last_error = None
 
         # -----------------------------------------------------
-        # First: Retry same batch a few times
+        # Retry the same batch if Gemini returns incomplete
+        # subtitle IDs.
         # -----------------------------------------------------
 
-        for attempt in range(max_attempts):
+        for attempt in range(
+            max_validation_attempts
+        ):
 
             try:
 
@@ -102,6 +108,7 @@ class TranslationService:
                     previous_context=previous_context,
                     next_context=next_context,
                     on_retry=on_retry,
+                    on_retry_countdown=on_retry_countdown,
                     job_id=job_id,
                     wait_if_paused=wait_if_paused,
                     is_cancelled=is_cancelled,
@@ -120,26 +127,30 @@ class TranslationService:
                     "Translation validation failed. "
                     "Attempt %s/%s. Error: %s",
                     attempt + 1,
-                    max_attempts,
+                    max_validation_attempts,
                     error,
                 )
 
-                # -------------------------------------------------
-                # Wait before validation retry
-                # -------------------------------------------------
+                if (
+                    attempt
+                    < max_validation_attempts - 1
+                ):
 
-                if attempt < max_attempts - 1:
-
-                    await self._wait_with_controls(
-                        seconds=2,
-                        job_id=job_id,
-                        wait_if_paused=wait_if_paused,
-                        is_cancelled=is_cancelled,
+                    can_continue = (
+                        await self._wait_with_controls(
+                            seconds=2,
+                            job_id=job_id,
+                            wait_if_paused=wait_if_paused,
+                            is_cancelled=is_cancelled,
+                        )
                     )
 
-        # ---------------------------------------------------------
-        # If batch is already small, don't split further
-        # ---------------------------------------------------------
+                    if not can_continue:
+                        return None
+
+        # -----------------------------------------------------
+        # If validation still fails, split batch.
+        # -----------------------------------------------------
 
         if len(subtitles) <= 1:
 
@@ -148,10 +159,6 @@ class TranslationService:
                 f"of size {len(subtitles)}. "
                 f"Last error: {last_error}"
             )
-
-        # ---------------------------------------------------------
-        # Split failed batch into two smaller batches
-        # ---------------------------------------------------------
 
         midpoint = len(subtitles) // 2
 
@@ -164,16 +171,16 @@ class TranslationService:
         ]
 
         logger.warning(
-            "Translation batch failed after retries. "
+            "Translation batch failed after validation retries. "
             "Splitting batch: %s -> %s + %s",
             len(subtitles),
             len(left_subtitles),
             len(right_subtitles),
         )
 
-        # ---------------------------------------------------------
-        # Translate LEFT half
-        # ---------------------------------------------------------
+        # -----------------------------------------------------
+        # Translate LEFT batch
+        # -----------------------------------------------------
 
         left_result = await self._translate_with_recovery(
             subtitles=left_subtitles,
@@ -181,6 +188,7 @@ class TranslationService:
             previous_context=previous_context,
             next_context=None,
             on_retry=on_retry,
+            on_retry_countdown=on_retry_countdown,
             job_id=job_id,
             wait_if_paused=wait_if_paused,
             is_cancelled=is_cancelled,
@@ -189,9 +197,9 @@ class TranslationService:
         if left_result is None:
             return None
 
-        # ---------------------------------------------------------
-        # Translate RIGHT half
-        # ---------------------------------------------------------
+        # -----------------------------------------------------
+        # Translate RIGHT batch
+        # -----------------------------------------------------
 
         right_result = await self._translate_with_recovery(
             subtitles=right_subtitles,
@@ -199,6 +207,7 @@ class TranslationService:
             previous_context=None,
             next_context=next_context,
             on_retry=on_retry,
+            on_retry_countdown=on_retry_countdown,
             job_id=job_id,
             wait_if_paused=wait_if_paused,
             is_cancelled=is_cancelled,
@@ -213,7 +222,7 @@ class TranslationService:
         )
 
     # =========================================================
-    # SINGLE GEMINI REQUEST
+    # SINGLE GEMINI API REQUEST
     # =========================================================
 
     async def _translate_batch_once(
@@ -223,6 +232,7 @@ class TranslationService:
         previous_context: list[str] | None = None,
         next_context: list[str] | None = None,
         on_retry=None,
+        on_retry_countdown=None,
         job_id: str | None = None,
         wait_if_paused=None,
         is_cancelled=None,
@@ -252,11 +262,6 @@ class TranslationService:
             else "(none)"
         )
 
-        # ---------------------------------------------------------
-        # IMPORTANT:
-        # Stable IDs are added here.
-        # ---------------------------------------------------------
-
         numbered_text = "\n".join(
             f"[SUBTITLE_ID:{index + 1}] {text}"
             for index, text in enumerate(
@@ -265,7 +270,7 @@ class TranslationService:
         )
 
         prompt = f"""
-You are a highly experienced professional subtitle translator and dialogue adaptation expert.
+You are a super elite and highly experienced professional subtitle translator and dialogue adaptation expert.
 
 Your task is to translate ONLY the subtitles listed under "SUBTITLES TO TRANSLATE" into natural, fluent, emotionally accurate Indian Hinglish written entirely in Roman script.
 
@@ -283,11 +288,11 @@ SUBTITLES TO TRANSLATE:
 FOLLOWING SUBTITLE CONTEXT:
 {next_context_text}
 
-IMPORTANT OUTPUT RULES:
+CORE RULES:
 
 1. Translate ONLY the subtitles under SUBTITLES TO TRANSLATE.
 
-2. Use the previous and following context ONLY to understand meaning.
+2. Use previous and following context ONLY to understand meaning.
 
 3. NEVER translate or output context subtitles.
 
@@ -301,13 +306,13 @@ IMPORTANT OUTPUT RULES:
 
 8. Preserve every SUBTITLE_ID exactly.
 
-9. Do not create new SUBTITLE_IDs.
+9. Never create new SUBTITLE_IDs.
 
 10. If an input subtitle is empty, return:
 [SUBTITLE_ID:X]
 with no text after it.
 
-11. Output must be Indian Hinglish in Roman script.
+11. Output must be natural Indian Hinglish in Roman script.
 
 12. Do not use Devanagari.
 
@@ -317,7 +322,7 @@ with no text after it.
 
 15. Preserve character personality and speaking style.
 
-16. Preserve names, locations, organizations, brands and proper nouns.
+16. Preserve names, locations, organizations, brands, technical terms and proper nouns.
 
 17. Do not add explanations or translator notes.
 
@@ -327,7 +332,7 @@ with no text after it.
 
 20. Do not add introductory or concluding text.
 
-21. Return ONLY the translated subtitle lines.
+21. Return ONLY translated subtitle lines.
 
 STRICT OUTPUT FORMAT:
 
@@ -339,7 +344,6 @@ Return ONLY these lines.
 """
 
         payload = {
-
             "contents": [
                 {
                     "parts": [
@@ -349,11 +353,9 @@ Return ONLY these lines.
                     ]
                 }
             ],
-
             "generationConfig": {
                 "temperature": 0.2,
             },
-
         }
 
         url = (
@@ -365,7 +367,7 @@ Return ONLY these lines.
         response = None
 
         # =====================================================
-        # API RETRIES
+        # GEMINI API RETRIES
         # =====================================================
 
         for attempt in range(
@@ -373,7 +375,7 @@ Return ONLY these lines.
         ):
 
             # -------------------------------------------------
-            # Pause support
+            # Pause check
             # -------------------------------------------------
 
             if (
@@ -391,7 +393,7 @@ Return ONLY these lines.
                     return None
 
             # -------------------------------------------------
-            # Cancellation support
+            # Cancellation check
             # -------------------------------------------------
 
             if (
@@ -440,12 +442,17 @@ Return ONLY these lines.
                         "failed after maximum retries."
                     ) from error
 
-                await self._wait_with_controls(
-                    seconds=2 ** attempt,
-                    job_id=job_id,
-                    wait_if_paused=wait_if_paused,
-                    is_cancelled=is_cancelled,
+                can_continue = (
+                    await self._wait_with_controls(
+                        seconds=2 ** attempt,
+                        job_id=job_id,
+                        wait_if_paused=wait_if_paused,
+                        is_cancelled=is_cancelled,
+                    )
                 )
+
+                if not can_continue:
+                    return None
 
                 continue
 
@@ -455,16 +462,16 @@ Return ONLY these lines.
                 response.status_code,
             )
 
-            # -------------------------------------------------
+            # =================================================
             # SUCCESS
-            # -------------------------------------------------
+            # =================================================
 
             if response.status_code == 200:
                 break
 
-            # -------------------------------------------------
-            # RATE LIMIT
-            # -------------------------------------------------
+            # =================================================
+            # 429 RATE LIMIT / QUOTA
+            # =================================================
 
             if response.status_code == 429:
 
@@ -475,9 +482,19 @@ Return ONLY these lines.
                 )
 
                 retry_message = (
-                    "Gemini quota/rate limit reached. "
+                    "Gemini rate limit reached. "
                     "Automatically retrying..."
                 )
+
+                logger.warning(
+                    "Gemini returned HTTP 429. "
+                    "Waiting %s seconds before retry.",
+                    retry_seconds,
+                )
+
+                # -------------------------------------------------
+                # Tell worker/frontend that retry has started.
+                # -------------------------------------------------
 
                 if on_retry:
 
@@ -486,18 +503,81 @@ Return ONLY these lines.
                         retry_message,
                     )
 
-                await self._wait_with_controls(
-                    seconds=retry_seconds,
-                    job_id=job_id,
-                    wait_if_paused=wait_if_paused,
-                    is_cancelled=is_cancelled,
-                )
+                # -------------------------------------------------
+                # Live countdown
+                # -------------------------------------------------
+
+                remaining = retry_seconds
+
+                while remaining > 0:
+
+                    # ---------------------------------------------
+                    # Check cancellation
+                    # ---------------------------------------------
+
+                    if (
+                        job_id
+                        and is_cancelled
+                    ):
+
+                        if await is_cancelled(
+                            job_id
+                        ):
+
+                            return None
+
+                    # ---------------------------------------------
+                    # Check pause
+                    # ---------------------------------------------
+
+                    if (
+                        job_id
+                        and wait_if_paused
+                    ):
+
+                        can_continue = (
+                            await wait_if_paused(
+                                job_id
+                            )
+                        )
+
+                        if not can_continue:
+                            return None
+
+                    # ---------------------------------------------
+                    # Update frontend countdown
+                    # ---------------------------------------------
+
+                    if on_retry_countdown:
+
+                        await on_retry_countdown(
+                            remaining,
+                            retry_message,
+                        )
+
+                    await asyncio.sleep(
+                        1
+                    )
+
+                    remaining -= 1
+
+                # -------------------------------------------------
+                # Countdown completed.
+                # Automatically retry same API request.
+                # -------------------------------------------------
+
+                if on_retry_countdown:
+
+                    await on_retry_countdown(
+                        0,
+                        "Retrying Gemini request now...",
+                    )
 
                 continue
 
-            # -------------------------------------------------
-            # SERVER ERRORS
-            # -------------------------------------------------
+            # =================================================
+            # SERVER ERROR
+            # =================================================
 
             if response.status_code >= 500:
 
@@ -513,18 +593,23 @@ Return ONLY these lines.
                         f"Response: {response.text}"
                     )
 
-                await self._wait_with_controls(
-                    seconds=2 ** attempt,
-                    job_id=job_id,
-                    wait_if_paused=wait_if_paused,
-                    is_cancelled=is_cancelled,
+                can_continue = (
+                    await self._wait_with_controls(
+                        seconds=2 ** attempt,
+                        job_id=job_id,
+                        wait_if_paused=wait_if_paused,
+                        is_cancelled=is_cancelled,
+                    )
                 )
+
+                if not can_continue:
+                    return None
 
                 continue
 
-            # -------------------------------------------------
+            # =================================================
             # OTHER API ERROR
-            # -------------------------------------------------
+            # =================================================
 
             raise RuntimeError(
                 "Gemini API request failed: "
@@ -533,7 +618,7 @@ Return ONLY these lines.
             )
 
         # =====================================================
-        # FINAL RESPONSE VALIDATION
+        # FINAL API VALIDATION
         # =====================================================
 
         if (
@@ -584,7 +669,7 @@ Return ONLY these lines.
             ) from error
 
         # =====================================================
-        # ROBUST ID-BASED PARSER
+        # PARSE SUBTITLE IDs
         # =====================================================
 
         expected_ids = set(
@@ -595,12 +680,6 @@ Return ONLY these lines.
         )
 
         translations_by_id = {}
-
-        # -----------------------------------------------------
-        # Important:
-        # Do NOT use .strip() on individual text
-        # because empty translations are valid.
-        # -----------------------------------------------------
 
         for raw_line in output.splitlines():
 
@@ -627,19 +706,11 @@ Return ONLY these lines.
                 else ""
             )
 
-            # -------------------------------------------------
-            # Ignore unexpected IDs
-            # -------------------------------------------------
-
             if (
                 subtitle_id
                 not in expected_ids
             ):
                 continue
-
-            # -------------------------------------------------
-            # Duplicate ID
-            # -------------------------------------------------
 
             if (
                 subtitle_id
@@ -654,10 +725,6 @@ Return ONLY these lines.
             translations_by_id[
                 subtitle_id
             ] = translated_text.strip()
-
-        # =====================================================
-        # VALIDATE IDs
-        # =====================================================
 
         received_ids = set(
             translations_by_id.keys()
@@ -677,22 +744,13 @@ Return ONLY these lines.
                 f"received {len(received_ids)}."
             )
 
-        # =====================================================
-        # REBUILD EXACT ORIGINAL ORDER
-        # =====================================================
-
         translated = [
-
             translations_by_id[index]
-
             for index in range(
                 1,
                 len(subtitles) + 1,
             )
-
         ]
-
-        # Final safety check
 
         if len(translated) != len(
             subtitles
@@ -708,7 +766,7 @@ Return ONLY these lines.
         return translated
 
     # =========================================================
-    # RETRY DELAY PARSER
+    # EXTRACT GOOGLE RETRY DELAY
     # =========================================================
 
     def _extract_retry_seconds(
@@ -724,13 +782,22 @@ Return ONLY these lines.
                 response.json()
             )
 
-            details = (
-                error_json
-                .get(
+            error = (
+                error_json.get(
                     "error",
                     {}
                 )
-                .get(
+            )
+
+            # -------------------------------------------------
+            # First priority:
+            # RetryInfo.retryDelay
+            # Example:
+            # "retryDelay": "59s"
+            # -------------------------------------------------
+
+            details = (
+                error.get(
                     "details",
                     []
                 )
@@ -748,10 +815,13 @@ Return ONLY these lines.
 
                     numbers = re.findall(
                         r"\d+",
-                        retry_delay,
+                        str(
+                            retry_delay
+                        ),
                     )
 
                     if numbers:
+
                         return max(
                             1,
                             int(
@@ -759,14 +829,51 @@ Return ONLY these lines.
                             ),
                         )
 
-        except Exception:
+            # -------------------------------------------------
+            # Sometimes retry delay may be present in message.
+            # -------------------------------------------------
 
-            pass
+            message = (
+                error.get(
+                    "message",
+                    ""
+                )
+            )
+
+            match = re.search(
+                r"retry in\s+([\d.]+)s",
+                message,
+                flags=re.IGNORECASE,
+            )
+
+            if match:
+
+                return max(
+                    1,
+                    int(
+                        float(
+                            match.group(1)
+                        )
+                    ),
+                )
+
+        except Exception as error:
+
+            logger.warning(
+                "Could not parse Gemini retry delay: %s",
+                error,
+            )
+
+        logger.warning(
+            "Gemini retry delay could not be determined. "
+            "Using default %s seconds.",
+            default_seconds,
+        )
 
         return default_seconds
 
     # =========================================================
-    # PAUSE / CANCEL AWARE SLEEP
+    # PAUSE / CANCEL AWARE WAIT
     # =========================================================
 
     async def _wait_with_controls(
@@ -784,10 +891,6 @@ Return ONLY these lines.
 
         while remaining > 0:
 
-            # -------------------------------------------------
-            # Cancellation
-            # -------------------------------------------------
-
             if (
                 job_id
                 and is_cancelled
@@ -798,10 +901,6 @@ Return ONLY these lines.
                 ):
 
                     return False
-
-            # -------------------------------------------------
-            # Pause
-            # -------------------------------------------------
 
             if (
                 job_id
@@ -815,7 +914,6 @@ Return ONLY these lines.
                 )
 
                 if not can_continue:
-
                     return False
 
             await asyncio.sleep(
@@ -824,11 +922,4 @@ Return ONLY these lines.
 
             remaining -= 1
 
-        return True
-
-
-
-
-
-
-        
+        return True                          
