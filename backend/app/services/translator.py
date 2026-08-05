@@ -270,7 +270,7 @@ class TranslationService:
         )
 
         prompt = f"""
-You are a super elite and highly experienced professional subtitle translator and dialogue adaptation expert.
+You are a highly experienced and super elite professional subtitle translator and dialogue adaptation expert.
 
 Your task is to translate ONLY the subtitles listed under "SUBTITLES TO TRANSLATE" into natural, fluent, emotionally accurate Indian Hinglish written entirely in Roman script.
 
@@ -341,6 +341,14 @@ STRICT OUTPUT FORMAT:
 [SUBTITLE_ID:3] translated subtitle
 
 Return ONLY these lines.
+
+IMPORTANT SUBTITLE BOUNDARY RULES
+
+- Every SUBTITLE_ID represents exactly ONE subtitle.
+- Never continue a subtitle into the next SUBTITLE_ID.
+- Never move any sentence from one SUBTITLE_ID to another.
+- If one subtitle contains an incomplete sentence, translate only that subtitle and do not complete it using the next subtitle.
+- Preserve subtitle boundaries exactly as received.
 """
 
         payload = {
