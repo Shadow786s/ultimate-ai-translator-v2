@@ -554,13 +554,39 @@ Never exaggerate or weaken the original emotional intensity.
 
 Always translate the intention behind the dialogue, not just the literal words.
 
-
-
 STRICT OUTPUT FORMAT:
 
 [SUBTITLE_ID:1] translated subtitle
 [SUBTITLE_ID:2] translated subtitle
 [SUBTITLE_ID:3] translated subtitle
+
+========================
+SUBTITLE BOUNDARY PROTECTION
+========================
+
+Treat every subtitle as an independent subtitle block.
+
+Each SUBTITLE_ID has fixed boundaries that MUST NEVER change.
+
+Translate ONLY the text inside that SUBTITLE_ID.
+
+Never move any word, phrase, clause, or sentence from one subtitle to another.
+
+Never complete an unfinished sentence using the next subtitle.
+
+Never borrow words from the previous subtitle.
+
+Never delay words until the next subtitle.
+
+If the source subtitle is intentionally incomplete, keep it incomplete.
+
+If a sentence spans multiple subtitles, translate each subtitle independently while preserving the original split exactly.
+
+Do not rewrite subtitle timing by changing subtitle boundaries.
+
+Preserve subtitle segmentation exactly as provided.
+
+The number of words may naturally differ after translation, but every translated word must belong only to its own SUBTITLE_ID.
 
 Return ONLY these lines.
 
@@ -571,6 +597,14 @@ IMPORTANT SUBTITLE BOUNDARY RULES
 - Never move any sentence from one SUBTITLE_ID to another.
 - If one subtitle contains an incomplete sentence, translate only that subtitle and do not complete it using the next subtitle.
 - Preserve subtitle boundaries exactly as received.
+
+If a subtitle ends in the middle of a sentence, stop translating at that exact point.
+
+Do not continue that sentence in the next SUBTITLE_ID.
+
+Each translated subtitle must correspond only to its own original subtitle.
+
+Subtitle boundaries are more important than producing perfectly complete sentences.
 """
 
         payload = {
@@ -947,6 +981,9 @@ IMPORTANT SUBTITLE BOUNDARY RULES
                 in translations_by_id
             ):
 
+                # Duplicate subtitle IDs indicate an invalid Gemini response.
+                # Fail fast so the recovery logic can retry or split the batch.
+
                 raise ValueError(
                     "Gemini returned duplicate "
                     f"SUBTITLE_ID: {subtitle_id}"
@@ -981,6 +1018,27 @@ IMPORTANT SUBTITLE BOUNDARY RULES
                 len(subtitles) + 1,
             )
         ]
+
+        # ==========================================
+        # CLEAN TRANSLATION OUTPUT
+        # ==========================================
+
+        cleaned_translated = []
+
+        for text in translated:
+
+            if text is None:
+                text = ""
+
+            # Normalize whitespace
+            text = re.sub(r"\s+", " ", text)
+
+            # Remove leading/trailing spaces
+            text = text.strip()
+
+            cleaned_translated.append(text)
+
+        translated = cleaned_translated
 
         if len(translated) != len(
             subtitles
