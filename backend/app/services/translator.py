@@ -421,6 +421,40 @@ Use the previous and following subtitle context to resolve pronouns correctly.
 - Never guess a different person if the context already makes the reference clear.
 
 ========================
+SPEAKER RESOLUTION RULES
+========================
+
+Before translating each subtitle, first determine WHO is speaking.
+
+Correctly distinguish between:
+
+- the speaker talking about themselves
+- the speaker talking to another person
+- the speaker talking about a third person
+- narration
+- internal thoughts
+- dialogue directed at a group
+
+Never confuse the speaker with the listener.
+
+If the speaker refers to themselves using "I", "me", "my", "myself", preserve that self-reference naturally.
+
+Do NOT convert self-reference into second-person forms such as:
+- tum
+- tu
+- aap
+
+unless the original subtitle is actually addressing another character.
+
+Likewise, if the dialogue is directed at another character, do not translate it as self-reference.
+
+Always use the previous and following subtitle context to identify who is speaking and who is being addressed.
+
+If the speaker remains the same across consecutive subtitles, maintain the same point of view unless the source clearly changes speakers.
+
+Preserve first-person, second-person and third-person references exactly according to the original dialogue.
+
+========================
 SUBTITLE BOUNDARY PROTECTION
 ========================
 
