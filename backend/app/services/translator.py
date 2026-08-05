@@ -289,7 +289,7 @@ FOLLOWING SUBTITLE CONTEXT:
 {next_context_text}
 
 ========================
-NATURAL INDIAN HINGLISH STYLE
+NATURAL INDIAN HINGLISH STYLE LIKE (ANIME AND DONGHUA)
 ========================
 
 Translate as if writing subtitles for a popular Indian OTT platform.
@@ -356,6 +356,28 @@ The final translation should sound effortless, conversational, and natural to In
 
 - Read the translated subtitle mentally before returning it. If it sounds unnatural or like a textbook translation, rewrite it into more natural Indian Hinglish while preserving the original meaning.
 
+DONGHUA TERMINOLOGY RULES:
+- Maintain consistent translations for cultivation and fantasy terms throughout the entire subtitle file.
+- Do NOT translate well-known cultivation terms unless there is a widely accepted English equivalent.
+- Preserve proper nouns exactly as they are.
+- Keep the same terminology every time it appears.
+- Never use different translations for the same term within the same subtitle file.
+
+Examples:
+Qi → Qi
+Cultivation → Cultivation
+Sect → Sect
+Spirit Stone → Spirit Stone
+Spirit Beast → Spirit Beast
+Dao → Dao
+Elder → Elder
+Immortal → Immortal
+Master → Master
+Disciple → Disciple
+Senior Brother → Senior Brother
+Junior Sister → Junior Sister
+etc.
+
 ========================
 CHARACTER CONSISTENCY
 ========================
@@ -384,87 +406,6 @@ Ensure each translated subtitle feels like a natural continuation of the surroun
 
 Maintain consistent wording for repeated phrases, names, and recurring expressions.
 
-CORE RULES:
-
-1. Translate ONLY the subtitles under SUBTITLES TO TRANSLATE.
-
-2. Use previous and following context ONLY to understand meaning.
-
-3. NEVER translate or output context subtitles.
-
-4. Return EXACTLY one output for every input SUBTITLE_ID.
-
-5. NEVER skip a SUBTITLE_ID.
-
-6. NEVER merge two SUBTITLE_IDs.
-
-7. NEVER split one SUBTITLE_ID into multiple outputs.
-
-8. Preserve every SUBTITLE_ID exactly.
-
-9. Never create new SUBTITLE_IDs.
-
-10. If an input subtitle is empty, return:
-[SUBTITLE_ID:X]
-with no text after it.
-
-11. Output must be natural Indian Hinglish in Roman script.
-
-12. Do not use Devanagari.
-
-13. Preserve the original meaning and intent.
-
-14. Preserve emotion, tone, sarcasm, humor, anger, fear, sadness, romance, threats, insults, hesitation, confidence, politeness and disrespect.
-
-15. Preserve character personality and speaking style.
-
-16. Preserve names, locations, organizations, brands, technical terms and proper nouns.
-
-17. For technical, scientific, medical, fantasy, historical, or fictional dialogue, preserve the correct terminology while making the surrounding sentence natural Hinglish.
-
-18A. DONGHUA TERMINOLOGY RULES
-
-- Maintain consistent translations for cultivation and fantasy terms throughout the entire subtitle file.
-- Do NOT translate well-known cultivation terms unless there is a widely accepted English equivalent.
-- Preserve proper nouns exactly as they are.
-- Keep the same terminology every time it appears.
-- Never use different translations for the same term within the same subtitle file.
-
-Examples:
-Qi → Qi
-Cultivation → Cultivation
-Sect → Sect
-Spirit Stone → Spirit Stone
-Spirit Beast → Spirit Beast
-Dao → Dao
-Elder → Elder
-Immortal → Immortal
-Master → Master
-Disciple → Disciple
-Senior Brother → Senior Brother
-Junior Sister → Junior Sister
-etc.
-
-18. Do not add explanations or translator notes.
-
-19. Do not add Markdown.
-
-20. Do not add bullet points.
-
-21. Do not add introductory or concluding text.
-
-22. Return ONLY translated subtitle lines.
-
-23. Use context to correctly understand:
-   - pronouns
-   - relationships
-   - references
-   - jokes
-   - sarcasm
-   - implied meaning
-   - speaker intent
-   - continuity between subtitles
-
 ========================
 PRONOUN RESOLUTION RULES
 ========================
@@ -480,7 +421,53 @@ Use the previous and following subtitle context to resolve pronouns correctly.
 - Never guess a different person if the context already makes the reference clear.
 
 ========================
-TENSE AND TIMELINE RULES
+SUBTITLE BOUNDARY PROTECTION
+========================
+
+Treat every subtitle as an independent subtitle block.
+
+Each SUBTITLE_ID has fixed boundaries that MUST NEVER change.
+
+Translate ONLY the text inside that SUBTITLE_ID.
+
+Never move any word, phrase, clause, or sentence from one subtitle to another.
+
+Never complete an unfinished sentence using the next subtitle.
+
+Never borrow words from the previous subtitle.
+
+Never delay words until the next subtitle.
+
+If the source subtitle is intentionally incomplete, keep it incomplete.
+
+If a sentence spans multiple subtitles, translate each subtitle independently while preserving the original split exactly.
+
+Do not rewrite subtitle timing by changing subtitle boundaries.
+
+Preserve subtitle segmentation exactly as provided.
+
+The number of words may naturally differ after translation, but every translated word must belong only to its own SUBTITLE_ID.
+
+Return ONLY these lines.
+
+IMPORTANT SUBTITLE BOUNDARY RULES
+
+- Every SUBTITLE_ID represents exactly ONE subtitle.
+- Never continue a subtitle into the next SUBTITLE_ID.
+- Never move any sentence from one SUBTITLE_ID to another.
+- If one subtitle contains an incomplete sentence, translate only that subtitle and do not complete it using the next subtitle.
+- Preserve subtitle boundaries exactly as received.
+
+If a subtitle ends in the middle of a sentence, stop translating at that exact point.
+
+Do not continue that sentence in the next SUBTITLE_ID.
+
+Each translated subtitle must correspond only to its own original subtitle.
+
+Subtitle boundaries are more important than producing perfectly complete sentences.
+
+========================
+FOLLOW STRICTLY:TENSE AND TIMELINE RULES
 ========================
 
 Use the previous and following subtitle context to understand the timeline of the conversation.
@@ -554,57 +541,69 @@ Never exaggerate or weaken the original emotional intensity.
 
 Always translate the intention behind the dialogue, not just the literal words.
 
+SOME POINTS:
+
+1. Translate ONLY the subtitles under SUBTITLES TO TRANSLATE.
+
+2. Use previous and following context ONLY to understand meaning.
+
+3. NEVER translate or output context subtitles.
+
+4. Return EXACTLY one output for every input SUBTITLE_ID.
+
+5. NEVER skip a SUBTITLE_ID.
+
+6. NEVER merge two SUBTITLE_IDs.
+
+7. NEVER split one SUBTITLE_ID into multiple outputs.
+
+8. Preserve every SUBTITLE_ID exactly.
+
+9. Never create new SUBTITLE_IDs.
+
+10. If an input subtitle is empty, return:
+[SUBTITLE_ID:X]
+with no text after it.
+
+11. Output must be natural Indian Hinglish in Roman script.
+
+12. Do not use Devanagari.
+
+13. Preserve the original meaning and intent.
+
+14. Preserve emotion, tone, sarcasm, humor, anger, fear, sadness, romance, threats, insults, hesitation, confidence, politeness and disrespect.
+
+15. Preserve character personality and speaking style.
+
+16. Preserve names, locations, organizations, brands, technical terms and proper nouns.
+
+17. For technical, scientific, medical, fantasy, historical, or fictional dialogue, preserve the correct terminology while making the surrounding sentence natural Hinglish.
+
+ 18. Do not add explanations or translator notes.
+
+19. Do not add Markdown.
+
+20. Do not add bullet points.
+
+21. Do not add introductory or concluding text.
+
+22. Return ONLY translated subtitle lines.
+
+23. Use context to correctly understand:
+   - pronouns
+   - relationships
+   - references
+   - jokes
+   - sarcasm
+   - implied meaning
+   - speaker intent
+   - continuity between subtitles
+
 STRICT OUTPUT FORMAT:
 
 [SUBTITLE_ID:1] translated subtitle
 [SUBTITLE_ID:2] translated subtitle
 [SUBTITLE_ID:3] translated subtitle
-
-========================
-SUBTITLE BOUNDARY PROTECTION
-========================
-
-Treat every subtitle as an independent subtitle block.
-
-Each SUBTITLE_ID has fixed boundaries that MUST NEVER change.
-
-Translate ONLY the text inside that SUBTITLE_ID.
-
-Never move any word, phrase, clause, or sentence from one subtitle to another.
-
-Never complete an unfinished sentence using the next subtitle.
-
-Never borrow words from the previous subtitle.
-
-Never delay words until the next subtitle.
-
-If the source subtitle is intentionally incomplete, keep it incomplete.
-
-If a sentence spans multiple subtitles, translate each subtitle independently while preserving the original split exactly.
-
-Do not rewrite subtitle timing by changing subtitle boundaries.
-
-Preserve subtitle segmentation exactly as provided.
-
-The number of words may naturally differ after translation, but every translated word must belong only to its own SUBTITLE_ID.
-
-Return ONLY these lines.
-
-IMPORTANT SUBTITLE BOUNDARY RULES
-
-- Every SUBTITLE_ID represents exactly ONE subtitle.
-- Never continue a subtitle into the next SUBTITLE_ID.
-- Never move any sentence from one SUBTITLE_ID to another.
-- If one subtitle contains an incomplete sentence, translate only that subtitle and do not complete it using the next subtitle.
-- Preserve subtitle boundaries exactly as received.
-
-If a subtitle ends in the middle of a sentence, stop translating at that exact point.
-
-Do not continue that sentence in the next SUBTITLE_ID.
-
-Each translated subtitle must correspond only to its own original subtitle.
-
-Subtitle boundaries are more important than producing perfectly complete sentences.
 """
 
         payload = {
