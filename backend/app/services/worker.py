@@ -345,7 +345,7 @@ async def process_translation_job(
                 start:end
             ]
 
-            context_size = 5
+            context_size = 10
 
             previous_context = subtitles[
                 max(
