@@ -288,6 +288,102 @@ SUBTITLES TO TRANSLATE:
 FOLLOWING SUBTITLE CONTEXT:
 {next_context_text}
 
+========================
+NATURAL INDIAN HINGLISH STYLE
+========================
+
+Translate as if writing subtitles for a popular Indian OTT platform.
+
+The dialogue should sound like how educated Indian speakers naturally talk in everyday life.
+
+Do not use overly formal, literary, or textbook Hindi unless the original dialogue is intentionally formal.
+
+Prefer commonly used English words when Indian speakers naturally use them in conversation.
+
+Examples of words that should usually remain in English when appropriate:
+
+problem
+plan
+idea
+message
+phone
+mobile
+doctor
+police
+boss
+office
+meeting
+project
+system
+computer
+email
+password
+ticket
+video
+movie
+game
+team
+bank
+college
+school
+report
+party
+business
+driver
+manager
+hotel
+station
+camera
+photo
+thanks
+sorry
+okay
+please
+
+However, do NOT force English into every sentence.
+
+Choose the most natural mix of Hindi and English according to the character, setting, and situation.
+
+Historical, mythological, royal, religious, or period dramas may require less English.
+
+Modern conversations may naturally contain more English.
+
+The final translation should sound effortless, conversational, and natural to Indian audiences.
+
+- Avoid replacing common English words with rare Hindi equivalents.
+
+- Prefer the wording that an average Indian would naturally speak in conversation.
+
+- Read the translated subtitle mentally before returning it. If it sounds unnatural or like a textbook translation, rewrite it into more natural Indian Hinglish while preserving the original meaning.
+
+========================
+CHARACTER CONSISTENCY
+========================
+
+Treat the subtitles as part of one continuous conversation.
+
+Maintain consistency for every character throughout the current translation batch.
+
+If a character speaks politely, continue using the same level of politeness unless the source dialogue clearly changes.
+
+If a character is rude, sarcastic, humorous, emotional, shy, confident, or aggressive, preserve that speaking style consistently.
+
+Keep names, nicknames, titles, and forms of address consistent across subtitles.
+
+Do not randomly switch between "tum", "aap", and "tu" unless the source clearly indicates a change in relationship or emotion.
+
+If a technical term, location, object, or fictional name appears multiple times, translate it consistently throughout the batch.
+
+Use the surrounding subtitle context only to understand the conversation better.
+
+Never rewrite earlier subtitles or invent information that is not present in the source.
+
+Always use the previous and following subtitles to maintain conversation continuity.
+
+Ensure each translated subtitle feels like a natural continuation of the surrounding dialogue.
+
+Maintain consistent wording for repeated phrases, names, and recurring expressions.
+
 CORE RULES:
 
 1. Translate ONLY the subtitles under SUBTITLES TO TRANSLATE.
@@ -324,15 +420,141 @@ with no text after it.
 
 16. Preserve names, locations, organizations, brands, technical terms and proper nouns.
 
-17. Do not add explanations or translator notes.
+17. For technical, scientific, medical, fantasy, historical, or fictional dialogue, preserve the correct terminology while making the surrounding sentence natural Hinglish.
 
-18. Do not add Markdown.
+18A. DONGHUA TERMINOLOGY RULES
 
-19. Do not add bullet points.
+- Maintain consistent translations for cultivation and fantasy terms throughout the entire subtitle file.
+- Do NOT translate well-known cultivation terms unless there is a widely accepted English equivalent.
+- Preserve proper nouns exactly as they are.
+- Keep the same terminology every time it appears.
+- Never use different translations for the same term within the same subtitle file.
 
-20. Do not add introductory or concluding text.
+Examples:
+Qi → Qi
+Cultivation → Cultivation
+Sect → Sect
+Spirit Stone → Spirit Stone
+Spirit Beast → Spirit Beast
+Dao → Dao
+Elder → Elder
+Immortal → Immortal
+Master → Master
+Disciple → Disciple
+Senior Brother → Senior Brother
+Junior Sister → Junior Sister
+etc.
 
-21. Return ONLY translated subtitle lines.
+18. Do not add explanations or translator notes.
+
+19. Do not add Markdown.
+
+20. Do not add bullet points.
+
+21. Do not add introductory or concluding text.
+
+22. Return ONLY translated subtitle lines.
+
+23. Use context to correctly understand:
+   - pronouns
+   - relationships
+   - references
+   - jokes
+   - sarcasm
+   - implied meaning
+   - speaker intent
+   - continuity between subtitles
+
+========================
+PRONOUN RESOLUTION RULES
+========================
+
+Use the previous and following subtitle context to resolve pronouns correctly.
+
+- Correctly identify who "I", "you", "he", "she", "they", "we", "him", "her", and "them" refer to.
+- Preserve the correct relationship between characters.
+- Choose "tu", "tum", or "aap" naturally according to the relationship and tone.
+- Do not change the level of respect unless the source dialogue clearly changes it.
+- If the speaker is talking to multiple people, use the correct plural form.
+- If the context clearly identifies a person, keep the reference consistent across subtitles.
+- Never guess a different person if the context already makes the reference clear.
+
+========================
+TENSE AND TIMELINE RULES
+========================
+
+Use the previous and following subtitle context to understand the timeline of the conversation.
+
+- Determine whether the speaker is talking about:
+  - a past event
+  - a present situation
+  - a future event
+  - an ongoing action
+  - a completed action
+
+- Preserve the original tense naturally in Hinglish.
+
+- Do not accidentally change:
+  - past into present
+  - present into future
+  - future into past
+
+- If a sentence continues from the previous subtitle, use the surrounding context to keep the tense consistent.
+
+- Preserve continuous actions and completed actions accurately.
+
+- If the source intentionally changes tense, preserve that change.
+
+- Never invent a different timeline that is not present in the source.
+
+========================
+EMOTION AND DIALOGUE DELIVERY
+========================
+
+Every subtitle is part of a real conversation between characters.
+
+Before translating each subtitle, identify the speaker's emotional state using the subtitle itself and the surrounding context.
+
+Possible emotions include (but are not limited to):
+- happiness
+- sadness
+- anger
+- fear
+- panic
+- surprise
+- excitement
+- frustration
+- sarcasm
+- irony
+- embarrassment
+- guilt
+- regret
+- love
+- affection
+- respect
+- confidence
+- hesitation
+- disappointment
+- grief
+- determination
+
+Preserve the original emotion naturally in the translation.
+
+Do not make an angry line sound polite.
+
+Do not make a sad line sound emotionless.
+
+Do not remove sarcasm, irony, humor, tension, romance, or emotional intensity.
+
+If the speaker is shouting, panicking, whispering, crying, joking, threatening, apologizing, or comforting someone, preserve that feeling naturally.
+
+Use natural Indian conversational expressions only when they match the original emotion and meaning.
+
+Never exaggerate or weaken the original emotional intensity.
+
+Always translate the intention behind the dialogue, not just the literal words.
+
+
 
 STRICT OUTPUT FORMAT:
 
